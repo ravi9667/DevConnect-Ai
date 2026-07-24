@@ -10,7 +10,7 @@ const verifyEmailTemplate = ({ fullName, verificationLink }) => {
                 > 
                     Verify Email
             </a>
-            <p style="margin-top: 20px;">This link will expire in 24 hours</p>
+            <p style="margin-top: 20px;">This link will expire in 10 Minute</p>
             <p>If you Didn't create this account, you can sefely ignore this email.</p>
         </div>
     `

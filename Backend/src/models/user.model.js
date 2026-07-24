@@ -51,24 +51,6 @@ const userSchema = mongoose.Schema(
             default: false,
         },
 
-        emailVerificationToken: {
-            type: String,
-            default: null,
-            select: false,
-        },
-
-        emailVerificationExpires: {
-            type: Date,
-            default: null,
-            select: false,
-        },
-
-        refreshToken: {
-            type: String,
-            default: null,
-            select: false,
-        },
-
         role: {
             type: String,
             enum: ["user", "admin"],

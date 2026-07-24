@@ -21,6 +21,7 @@ app.use(
 app.use(compression());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+app.set("trust proxy", 1);
 
 app.get("/api/v1/health", (req, res) => {
     res.status(200).json({
@@ -29,9 +30,6 @@ app.get("/api/v1/health", (req, res) => {
     })
 })
 app.use("/api/v1/auth", authRoutes);
-app.post("/test", (req, res) => {
-    res.json({message: "Test route working"})
-})
 
 
 app.use(notFound)
