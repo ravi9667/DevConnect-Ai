@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import errorHandler from './middlewares/error.middleware.js';
 import notFound from './middlewares/notFound.middleware.js';
-import authRoutes from "./routes/auth.routes.js"
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 

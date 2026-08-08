@@ -115,7 +115,7 @@ export const resendVerification = asyncHandler( async (req, res) => {
 
     const { email } = req.body;
 
-    const user = await User.findOne({ email }).select("+emailVerificationToken +emailVerificationExpires");
+    const user = await User.findOne({ email });
     if(!user) {
         throw new ApiError(404, "User not found");
     }
@@ -124,15 +124,23 @@ export const resendVerification = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Email already verified")
     }
 
-    const emailVerificationToken = crypto.randomBytes(32).toString("hex");
-    const emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await VerificationToken.deleteOne({
+        user: user._id,
+        type: "email-verification",
+    })
 
-    user.emailVerificationToken = emailVerificationToken;
-    user.emailVerificationExpires = emailVerificationExpires;
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = await bcrypt.hash(verificationToken, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await user.save();
+    await VerificationToken.create({
+        user: user._id,
+        token: hashedToken,
+        type: "email-verification",
+        expiresAt,
+    })
 
-    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${emailVerificationToken}`;
+    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&email=${email}`;
     const html = verifyEmailTemplate({
         fullName: user.fullName,
         verificationLink,
@@ -247,26 +255,22 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid OTP");
     }
 
-    if(loginOtp.attemps >= 5) {
+    if(loginOtp.attempts >= 5) {
         await LoginOtp.deleteOne({ _id: loginOtp._id });
         throw new ApiError(429, "Maximum OTP attempts exceeded. Please Login Again.")
     }
 
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
-    
-    const hashedRefreshToken = bcrypt.hash(refreshToken, 12);
 
     const requestInfo = getRequestInfo(req);
     
     await saveRefreshToken({
         userId: user._id,
-        refreshToken: hashedRefreshToken,
+        refreshToken: refreshToken,
         refreshTokenExpiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
         clientInfo: requestInfo,
     })
-
-    await user.save({ validateBeforeSave: false });
 
     await LoginOtp.deleteOne({ _id: loginOtp._id });
 
@@ -283,3 +287,5 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
         )
     ;
 });
+
+

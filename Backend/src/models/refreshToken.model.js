@@ -23,8 +23,15 @@ const refreshTokenSchema = new mongoose.Schema(
             type: String,
             default: "Unknown Device",
         },
+
+        // jti: {
+        //     type: String,
+        //     required: true,
+        //     unique: true,
+        //     index: true,
+        // },
     },
     { timestamps: true }
 );
 
-export const refreshToken = mongoose.model("refreshToken", refreshTokenSchema);
+export const RefreshToken = mongoose.model("refreshToken", refreshTokenSchema);
