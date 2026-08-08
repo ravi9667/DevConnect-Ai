@@ -1,0 +1,1965 @@
+================================================================================
+                         DEVCONNECT AI - BACKEND
+                    PROJECT HANDOVER / PROGRESS DOCUMENT
+================================================================================
+
+Project Name:
+DevConnect AI
+
+Project Type:
+AI-Powered Developer Collaboration Platform
+
+Backend Stack:
+Node.js
+Express.js
+MongoDB
+MongoDB Atlas
+Mongoose
+
+Authentication:
+JWT
+HttpOnly Cookies
+bcrypt
+Email Verification
+Email OTP Login
+Refresh Tokens
+
+Other Technologies:
+Resend
+Zod
+Cron Jobs
+UA Parser
+Git / GitHub
+Postman
+
+================================================================================
+1. WHAT IS DEVCONNECT AI?
+================================================================================
+
+DevConnect AI is a developer collaboration platform.
+
+The main purpose of this application is to provide developers a single
+platform where they can:
+
+- Create a professional developer profile
+- Discover other developers based on their skills
+- Create projects
+- Join other projects
+- Build teams
+- Collaborate with other developers
+- Communicate with team members
+- Get AI-powered developer/project recommendations
+- Get AI assistance during development
+
+Simple definition:
+
+"DevConnect AI is a developer collaboration platform where developers can
+create professional profiles, discover other developers based on their
+skills, create and join projects, form teams, communicate with collaborators,
+and use AI-powered features to find better project and developer matches and
+get development assistance."
+
+The backend is responsible for handling:
+
+- Authentication
+- Users
+- Projects
+- Teams
+- Collaboration
+- Messages
+- Notifications
+- AI features
+- Security
+- Database
+- APIs
+
+
+================================================================================
+2. BACKEND DEVELOPMENT APPROACH
+================================================================================
+
+We are not putting all the code inside one file.
+
+The backend follows a layered and modular architecture.
+
+Basic request flow:
+
+Client / Frontend
+       |
+       v
+     Route
+       |
+       v
+   Middleware
+       |
+       v
+   Controller
+       |
+       v
+    Service
+       |
+       v
+     Model
+       |
+       v
+   MongoDB
+
+
+Meaning:
+
+Route:
+Determines which API endpoint should handle the request.
+
+Middleware:
+Runs between request and controller.
+Used for validation, authentication, error handling, etc.
+
+Controller:
+Receives the request and decides what operation needs to happen.
+
+Service:
+Contains reusable business logic.
+
+Model:
+Defines the structure of data stored in MongoDB.
+
+Database:
+Stores the actual application data.
+
+
+================================================================================
+3. CURRENT BACKEND FOLDER STRUCTURE
+================================================================================
+
+Backend/
+|
+|-- src/
+|   |
+|   |-- config/
+|   |
+|   |-- controllers/
+|   |
+|   |-- models/
+|   |
+|   |-- routes/
+|   |
+|   |-- services/
+|   |
+|   |-- middlewares/
+|   |
+|   |-- utils/
+|   |
+|   |-- templates/
+|   |
+|   |-- cron/
+|   |
+|   |-- app.js
+|   |-- server.js
+|
+|-- .env
+|-- .gitignore
+|-- package.json
+|-- package-lock.json
+
+
+IMPORTANT:
+
+Some folders/files will grow as the project grows.
+
+The current authentication-related files are the most important part to
+understand first.
+
+
+================================================================================
+4. CONFIG FOLDER
+================================================================================
+
+Location:
+
+src/config/
+
+Purpose:
+
+The config folder contains configuration-related code.
+
+Configuration means things that are required to connect or configure
+different parts of the application.
+
+For example:
+
+- MongoDB connection
+- Environment configuration
+- Other external service configuration
+
+Think of config as:
+
+"Application ko external systems ke saath kaise connect/configure karna hai."
+
+
+Example:
+
+src/config/db.js
+
+This file is responsible for connecting our backend to MongoDB.
+
+
+Typical flow:
+
+server starts
+     |
+     v
+MongoDB connection
+     |
+     v
+connection successful
+     |
+     v
+Express server starts
+
+
+IMPORTANT:
+
+We are using MongoDB Atlas as the production/cloud database.
+
+The actual database URL should NOT be hardcoded.
+
+It is stored inside .env.
+
+
+================================================================================
+5. CONTROLLERS FOLDER
+================================================================================
+
+Location:
+
+src/controllers/
+
+Purpose:
+
+Controllers handle incoming API requests.
+
+For example:
+
+auth.controller.js
+
+contains authentication-related controller functions.
+
+Examples:
+
+signup()
+verifyEmail()
+resendVerification()
+login()
+verifyLoginOtp()
+logout()
+refreshToken()
+forgotPassword()
+etc.
+
+
+Think of controller as:
+
+"User ne request bheji hai, ab kya karna hai?"
+
+
+Example:
+
+export const signup = asyncHandler(async (req, res) => {
+
+    const { fullName, username, email, password } = req.body;
+
+    // business logic
+
+});
+
+
+The controller receives:
+
+req = request
+res = response
+
+
+We should avoid putting too much reusable business logic inside controllers.
+
+For reusable logic we use services.
+
+
+================================================================================
+6. MODELS FOLDER
+================================================================================
+
+Location:
+
+src/models/
+
+Purpose:
+
+Models define how our MongoDB data is structured.
+
+We have separated different types of data into different collections.
+
+Current authentication collections:
+
+users
+verificationtokens
+loginotps
+refreshtokens
+
+
+This separation is intentional.
+
+We do NOT want the User model to contain every temporary token/session.
+
+
+--------------------------------------------------------------------------------
+6.1 USER MODEL
+--------------------------------------------------------------------------------
+
+File:
+
+src/models/user.model.js
+
+
+Purpose:
+
+Stores permanent user/account information.
+
+Important fields:
+
+fullName
+username
+email
+password
+authProvider
+isEmailVerified
+role
+isActive
+
+
+Example structure:
+
+fullName: {
+    type: String,
+    required: true
+}
+
+username: {
+    type: String,
+    required: true,
+    unique: true
+}
+
+email: {
+    type: String,
+    required: true,
+    unique: true
+}
+
+password: {
+    type: String,
+    required: true,
+    select: false
+}
+
+authProvider: {
+    type: String,
+    enum: ["local", "google", "github"],
+    default: "local"
+}
+
+isEmailVerified: {
+    type: Boolean,
+    default: false
+}
+
+role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+}
+
+isActive: {
+    type: Boolean,
+    default: true
+}
+
+
+Password is NOT stored as plain text.
+
+We use bcrypt to hash it before saving.
+
+
+--------------------------------------------------------------------------------
+6.2 PASSWORD HASHING
+--------------------------------------------------------------------------------
+
+Inside user.model.js we use Mongoose pre-save middleware.
+
+Example:
+
+userSchema.pre("save", async function(next) {
+
+    if (!this.isModified("password")) {
+        return next();
+    }
+
+    this.password = await bcrypt.hash(this.password, 12);
+
+    next();
+});
+
+
+Meaning:
+
+When user is saved:
+
+Plain password
+      |
+      v
+bcrypt
+      |
+      v
+Hashed password
+      |
+      v
+MongoDB
+
+
+Why?
+
+If the database is compromised, the attacker should not directly get the
+user's original password.
+
+
+--------------------------------------------------------------------------------
+6.3 PASSWORD COMPARISON
+--------------------------------------------------------------------------------
+
+We also have:
+
+userSchema.methods.isPasswordCorrect = async function(password) {
+    return await bcrypt.compare(password, this.password);
+};
+
+
+During login:
+
+User enters password
+       |
+       v
+bcrypt.compare()
+       |
+       v
+Stored password hash
+       |
+       v
+true / false
+
+
+IMPORTANT:
+
+We do NOT decrypt the password hash.
+
+bcrypt is used to compare the entered password against the stored hash.
+
+
+--------------------------------------------------------------------------------
+6.4 JWT METHODS
+--------------------------------------------------------------------------------
+
+The User model contains methods for generating tokens.
+
+Access token:
+
+user.generateAccessToken()
+
+
+Refresh token:
+
+user.generateRefreshToken()
+
+
+Access token contains basic user identification information.
+
+Example:
+
+{
+    _id,
+    email,
+    username
+}
+
+
+The token is signed using a secret stored inside .env.
+
+
+================================================================================
+7. VERIFICATION TOKEN MODEL
+================================================================================
+
+File:
+
+src/models/verificationToken.model.js
+
+
+Purpose:
+
+Email verification and other temporary verification tokens are stored here.
+
+We intentionally moved emailVerificationToken and
+emailVerificationExpires OUT of the User model.
+
+
+Why?
+
+Because verification tokens are temporary data.
+
+User information:
+
+users collection
+
+Temporary verification information:
+
+verificationtokens collection
+
+
+This makes the architecture cleaner and easier to maintain.
+
+
+Flow:
+
+Signup
+   |
+   v
+Create User
+   |
+   v
+Generate Verification Token
+   |
+   v
+Store token in verificationtokens
+   |
+   v
+Send verification email
+   |
+   v
+User clicks verification link
+   |
+   v
+Verify token
+   |
+   v
+Set isEmailVerified = true
+   |
+   v
+Delete verification token
+
+
+================================================================================
+8. LOGIN OTP MODEL
+================================================================================
+
+File:
+
+src/models/loginOtp.model.js
+
+
+Purpose:
+
+Stores OTP information used during login.
+
+
+Login flow:
+
+Email + Password
+      |
+      v
+Password correct
+      |
+      v
+Generate OTP
+      |
+      v
+Hash OTP
+      |
+      v
+Store in loginotps
+      |
+      v
+Send OTP to email
+      |
+      v
+User enters OTP
+      |
+      v
+Compare OTP using bcrypt
+      |
+      v
+Login successful
+
+
+OTP also has:
+
+- Expiry time
+- Attempt counter
+
+
+If OTP expires:
+
+Delete OTP
+Return error
+
+
+If OTP is incorrect:
+
+Increase attempts
+Save OTP
+Return invalid OTP error
+
+
+If OTP is correct:
+
+Generate authentication tokens
+Delete OTP
+Login successful
+
+
+================================================================================
+9. REFRESH TOKEN MODEL
+================================================================================
+
+File:
+
+src/models/refreshToken.model.js
+
+
+Purpose:
+
+Refresh tokens represent user sessions.
+
+We keep refresh tokens in a separate collection.
+
+
+Why?
+
+Because one user can be logged in from multiple devices.
+
+
+Example:
+
+User Ravi:
+
+Laptop
+Mobile
+Chrome
+Another browser
+
+
+Each can have its own session.
+
+
+Concept:
+
+users
+   |
+   |---- refreshtokens
+           |
+           |---- Laptop session
+           |---- Mobile session
+           |---- Browser session
+
+
+The refresh token document contains information such as:
+
+- user
+- hashed refresh token
+- device information
+- IP address
+- browser
+- operating system
+- expiry time
+- last used time
+
+
+This allows us to later implement:
+
+- View logged-in devices
+- Logout one device
+- Logout all devices
+- Session management
+- Refresh token rotation
+
+
+IMPORTANT:
+
+The refresh token is hashed before being stored in the database.
+
+We should NEVER store the raw refresh token directly in MongoDB.
+
+
+================================================================================
+10. SERVICES FOLDER
+================================================================================
+
+Location:
+
+src/services/
+
+Purpose:
+
+Services contain reusable business logic.
+
+Controllers should not become huge.
+
+For example:
+
+Controller:
+
+"Send verification email"
+
+Service:
+
+"How exactly should the email be sent?"
+
+
+Current important services:
+
+
+--------------------------------------------------------------------------------
+10.1 EMAIL SERVICE
+--------------------------------------------------------------------------------
+
+File:
+
+src/services/email.service.js
+
+
+We use Resend for sending emails.
+
+
+Example:
+
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export const sendVerificationEmail = async ({
+    to,
+    subject,
+    html,
+}) => {
+
+    return await resend.emails.send({
+        from: process.env.FROM_EMAIL,
+        to,
+        subject,
+        html,
+    });
+
+};
+
+
+Purpose:
+
+Controller does not need to know how Resend works.
+
+Controller simply calls:
+
+sendVerificationEmail(...)
+
+
+The email service handles the actual email sending.
+
+
+--------------------------------------------------------------------------------
+10.2 TOKEN SERVICE
+--------------------------------------------------------------------------------
+
+File:
+
+src/services/token.service.js
+
+
+Purpose:
+
+Reusable token-related logic is kept here.
+
+This service handles things related to:
+
+- Refresh token
+- Hashing refresh token
+- Saving refresh token
+- Verifying refresh token
+- Rotating refresh token
+- Deleting refresh token
+- Deleting all refresh tokens
+
+
+We already created/refactored this service.
+
+
+Important principle:
+
+Token-related business logic should not be repeated in every controller.
+
+
+================================================================================
+11. ROUTES FOLDER
+================================================================================
+
+Location:
+
+src/routes/
+
+Purpose:
+
+Routes define API endpoints.
+
+Example:
+
+src/routes/auth.routes.js
+
+
+Authentication routes may look like:
+
+POST /api/v1/auth/signup
+
+POST /api/v1/auth/verify-email
+
+POST /api/v1/auth/resend-verification
+
+POST /api/v1/auth/login
+
+POST /api/v1/auth/verify-login-otp
+
+POST /api/v1/auth/refresh-token
+
+POST /api/v1/auth/logout
+
+
+Route connects the endpoint to the controller.
+
+
+Example:
+
+router.post(
+    "/signup",
+    validate(signupSchema),
+    signup
+);
+
+
+Flow:
+
+POST /signup
+      |
+      v
+Validation middleware
+      |
+      v
+signup controller
+
+
+================================================================================
+12. MIDDLEWARES FOLDER
+================================================================================
+
+Location:
+
+src/middlewares/
+
+Purpose:
+
+Middleware runs between request and controller.
+
+Common middleware examples:
+
+- Authentication middleware
+- Validation middleware
+- Error handling middleware
+- Rate limiting
+- Security middleware
+
+
+Example authentication flow:
+
+Request
+   |
+   v
+authMiddleware
+   |
+   |-- Token valid? --> Controller
+   |
+   |-- Token invalid --> Error
+
+
+Middleware is useful because we don't want to repeat the same authentication
+logic in every protected controller.
+
+
+================================================================================
+13. UTILS FOLDER
+================================================================================
+
+Location:
+
+src/utils/
+
+
+This folder contains small reusable helper utilities.
+
+
+Important files:
+
+
+--------------------------------------------------------------------------------
+13.1 asyncHandler.js
+--------------------------------------------------------------------------------
+
+Purpose:
+
+Handles errors from async controller functions.
+
+Instead of writing try/catch everywhere:
+
+asyncHandler(async (req, res) => {
+
+    // async code
+
+});
+
+
+It forwards errors to the centralized error handler.
+
+
+--------------------------------------------------------------------------------
+13.2 ApiError.js
+--------------------------------------------------------------------------------
+
+Purpose:
+
+Creates standardized API errors.
+
+
+Example:
+
+throw new ApiError(
+    404,
+    "User not found"
+);
+
+
+Instead of manually creating error responses everywhere.
+
+
+--------------------------------------------------------------------------------
+13.3 ApiResponse.js
+--------------------------------------------------------------------------------
+
+Purpose:
+
+Keeps successful API responses consistent.
+
+
+Example:
+
+new ApiResponse(
+    200,
+    data,
+    "Login successful"
+);
+
+
+Response format can be:
+
+{
+    success: true,
+    statusCode: 200,
+    message: "Login successful",
+    data: {...}
+}
+
+
+--------------------------------------------------------------------------------
+13.4 requestInfo.js
+--------------------------------------------------------------------------------
+
+Purpose:
+
+Extract information from the incoming request.
+
+We use UA Parser to get information from the User-Agent header.
+
+
+Example:
+
+import { UAParser } from "ua-parser-js";
+
+export const getRequestInfo = (req) => {
+
+    const parser =
+        new UAParser(req.headers["user-agent"]);
+
+    const result =
+        parser.getResult();
+
+    return {
+        ip: req.ip,
+        browser: result.browser.name,
+        os: result.os.name,
+        device: result.device.type || "Desktop",
+    };
+};
+
+
+Important:
+
+parser is NOT the device itself.
+
+parser is an object that reads and analyzes the User-Agent string.
+
+Example User-Agent:
+
+"Mozilla/5.0 ... Chrome ... Windows"
+
+
+UAParser analyzes this and gives:
+
+browser
+os
+device
+
+
+We then create our own clean requestInfo object.
+
+
+================================================================================
+14. TEMPLATES FOLDER
+================================================================================
+
+Location:
+
+src/templates/
+
+Purpose:
+
+Contains HTML templates used for emails.
+
+
+Example:
+
+src/templates/verifyEmail.templates.js
+
+
+Instead of writing large HTML directly inside the controller,
+we keep email HTML separately.
+
+
+Controller:
+
+const html =
+    verifyEmailTemplate({
+        fullName,
+        verificationLink
+    });
+
+
+Then:
+
+sendVerificationEmail({
+    to: email,
+    subject: "Verify Your Email",
+    html
+});
+
+
+This keeps controllers clean.
+
+
+================================================================================
+15. CRON FOLDER
+================================================================================
+
+Location:
+
+src/cron/
+
+
+Purpose:
+
+Contains scheduled/background tasks.
+
+
+Current important task:
+
+Deleting unverified users after 24 hours.
+
+
+Requirement:
+
+If a user signs up but does not verify their email within 24 hours,
+their account should be removed.
+
+
+Important:
+
+Deleting only the verification token is NOT enough.
+
+The actual user must also be deleted from the users collection.
+
+
+Flow:
+
+Cron Job
+   |
+   v
+Find expired verification tokens
+   |
+   v
+Get user ID
+   |
+   v
+Delete verification token
+   |
+   v
+Delete user
+   |
+   v
+Cleanup completed
+
+
+This keeps the database clean.
+
+
+================================================================================
+16. APP.JS
+================================================================================
+
+File:
+
+src/app.js
+
+
+Purpose:
+
+Creates and configures the Express application.
+
+
+This is where we configure:
+
+- Express
+- JSON parsing
+- Cookies
+- CORS
+- Security middleware
+- Routes
+- Error middleware
+
+
+Example architecture:
+
+const app = express();
+
+app.use(express.json());
+
+app.use(cookieParser());
+
+app.use(cors(...));
+
+
+Then routes:
+
+app.use(
+    "/api/v1/auth",
+    authRoutes
+);
+
+
+Important:
+
+app.js configures the Express application.
+
+It should not be responsible for starting the server.
+
+
+================================================================================
+17. SERVER.JS
+================================================================================
+
+File:
+
+src/server.js
+
+
+Purpose:
+
+Starts the actual server.
+
+
+Typical flow:
+
+Load environment variables
+        |
+        v
+Connect MongoDB
+        |
+        v
+Start Express server
+
+
+Example concept:
+
+connectDB()
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log("Server running");
+        });
+    });
+
+
+So:
+
+app.js = configure application
+
+server.js = start application
+
+
+================================================================================
+18. ENVIRONMENT VARIABLES
+================================================================================
+
+File:
+
+.env
+
+
+Sensitive values are stored here.
+
+Example:
+
+PORT=5000
+
+MONGODB_URI=...
+
+JWT_ACCESS_SECRET=...
+
+JWT_ACCESS_EXPIRY=...
+
+JWT_REFRESH_SECRET=...
+
+JWT_REFRESH_EXPIRY=...
+
+RESEND_API_KEY=...
+
+FROM_EMAIL=...
+
+CLIENT_URL=...
+
+
+IMPORTANT:
+
+Never commit .env to GitHub.
+
+
+================================================================================
+19. SIGNUP FLOW - COMPLETE
+================================================================================
+
+The current signup process works approximately like this:
+
+
+User
+ |
+ | fullName
+ | username
+ | email
+ | password
+ |
+ v
+POST /api/v1/auth/signup
+ |
+ v
+Validation
+ |
+ v
+Check existing email
+ |
+ v
+Check existing username
+ |
+ v
+Create User
+ |
+ v
+Password gets hashed by mongoose pre-save middleware
+ |
+ v
+Save User
+ |
+ v
+Generate email verification token
+ |
+ v
+Store VerificationToken
+ |
+ v
+Create verification link
+ |
+ v
+Generate HTML email
+ |
+ v
+Resend
+ |
+ v
+User receives email
+ |
+ v
+User clicks link
+ |
+ v
+Email becomes verified
+
+
+================================================================================
+20. EMAIL VERIFICATION FLOW
+================================================================================
+
+User clicks:
+
+/verify-email?token=...&email=...
+
+
+Backend:
+
+1. Receive token + email
+2. Find user
+3. Find verification token
+4. Check expiry
+5. Compare token
+6. Set isEmailVerified = true
+7. Delete verification token
+8. Return success
+
+
+After successful verification:
+
+User
+isEmailVerified = true
+
+
+================================================================================
+21. RESEND VERIFICATION FLOW
+================================================================================
+
+If user has not verified their email:
+
+User requests:
+
+POST /api/v1/auth/resend-verification
+
+
+Backend:
+
+1. Find user
+2. Check if already verified
+3. Delete old verification token if needed
+4. Generate new token
+5. Save new token
+6. Generate new verification link
+7. Send email
+
+
+This allows the user to request a new verification email.
+
+
+================================================================================
+22. LOGIN FLOW
+================================================================================
+
+Login is intentionally designed as:
+
+Email + Password + OTP
+
+
+Flow:
+
+User enters email/password
+        |
+        v
+Find user
+        |
+        v
+Check password
+        |
+        v
+Check email verification
+        |
+        v
+Generate OTP
+        |
+        v
+Hash OTP
+        |
+        v
+Save OTP in loginotps
+        |
+        v
+Send OTP via Resend
+        |
+        v
+User enters OTP
+        |
+        v
+Verify OTP
+        |
+        v
+Generate JWT
+        |
+        v
+Create refresh-token session
+        |
+        v
+Set HttpOnly cookies
+        |
+        v
+Login complete
+
+
+================================================================================
+23. LOGIN OTP VERIFICATION
+================================================================================
+
+Current controller logic:
+
+export const verifyLoginOtp = asyncHandler(async (req, res) => {
+
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const loginOtp = await LoginOtp.findOne({
+        user: user._id,
+    }).select("+otp");
+
+    if (!loginOtp) {
+        throw new ApiError(400, "OTP not found");
+    }
+
+    if (loginOtp.expiresAt < new Date()) {
+
+        await LoginOtp.deleteOne({
+            _id: loginOtp._id,
+        });
+
+        throw new ApiError(
+            400,
+            "OTP has expired"
+        );
+    }
+
+    const isOtpCorrect =
+        await bcrypt.compare(
+            otp,
+            loginOtp.otp
+        );
+
+    if (!isOtpCorrect) {
+
+        loginOtp.attempts += 1;
+
+        await loginOtp.save();
+
+        throw new ApiError(
+            400,
+            "Invalid OTP"
+        );
+    }
+
+    // JWT + session handling comes here
+
+});
+
+
+IMPORTANT:
+
+OTP is hashed in database.
+
+So we don't compare:
+
+otp === databaseOtp
+
+We use:
+
+bcrypt.compare(
+    enteredOtp,
+    storedOtpHash
+);
+
+
+================================================================================
+24. JWT AUTHENTICATION
+================================================================================
+
+We use two JWTs.
+
+
+ACCESS TOKEN:
+
+Short-lived token.
+
+Used for accessing protected APIs.
+
+
+REFRESH TOKEN:
+
+Long-lived token.
+
+Used to get a new access token after access token expires.
+
+
+Basic concept:
+
+Login
+ |
+ +--> Access Token
+ |
+ +--> Refresh Token
+
+
+Access Token:
+
+Short lifetime
+
+
+Refresh Token:
+
+Longer lifetime
+
+
+================================================================================
+25. HTTP ONLY COOKIES
+================================================================================
+
+We decided that JWTs should be stored in HttpOnly cookies.
+
+NOT localStorage.
+
+Example concept:
+
+res.cookie(
+    "accessToken",
+    accessToken,
+    accessCookieOptions
+);
+
+
+And:
+
+res.cookie(
+    "refreshToken",
+    refreshToken,
+    refreshCookieOptions
+);
+
+
+HttpOnly means JavaScript running in the browser cannot directly read the
+cookie.
+
+The browser automatically sends the cookie with requests when cookie
+conditions are satisfied.
+
+
+================================================================================
+26. REFRESH TOKEN SESSION SYSTEM
+================================================================================
+
+Each login can create a refresh token session.
+
+Example:
+
+User:
+Ravi
+
+Sessions:
+
+1. Chrome / Windows / IP A
+2. Mobile / Android / IP B
+3. Firefox / Windows / IP C
+
+
+This means one user can have multiple refreshToken documents.
+
+
+This will allow:
+
+"Logout this device"
+
+and:
+
+"Logout from all devices"
+
+
+to be implemented later.
+
+
+================================================================================
+27. WHY DEVICE INFORMATION IS STORED
+================================================================================
+
+When a user logs in, backend can extract:
+
+IP
+Browser
+Operating System
+Device type
+
+
+Example:
+
+{
+    ip: "...",
+    browser: "Chrome",
+    os: "Windows",
+    device: "Desktop"
+}
+
+
+This is stored with the refresh-token session.
+
+So later we can show:
+
+"Your active sessions"
+
+Example:
+
+Chrome
+Windows
+Desktop
+Last active: recently
+
+
+Mobile
+Android
+Last active: recently
+
+
+================================================================================
+28. CURRENT REFACTORING DECISION
+================================================================================
+
+We changed the authentication database design.
+
+OLD APPROACH:
+
+users:
+
+- emailVerificationToken
+- emailVerificationExpires
+- refreshToken
+- user information
+
+
+NEW APPROACH:
+
+users
+verificationtokens
+loginotps
+refreshtokens
+
+
+Why?
+
+Because each collection has a clear responsibility.
+
+
+users:
+Permanent user information
+
+
+verificationtokens:
+Temporary verification tokens
+
+
+loginotps:
+Temporary login OTP information
+
+
+refreshtokens:
+Login sessions / refresh token information
+
+
+This is cleaner and easier to maintain.
+
+
+================================================================================
+29. CURRENT PROGRESS
+================================================================================
+
+CHAPTER 1 - AUTHENTICATION & USER MANAGEMENT
+
+
+Completed:
+
+[x] Project setup
+[x] Express server
+[x] MongoDB Atlas connection
+[x] User model
+[x] Password hashing with bcrypt
+[x] Signup API
+[x] Email verification
+[x] Resend verification
+[x] VerificationToken separate collection
+[x] 24-hour verification expiry
+[x] Cron job for unverified account cleanup
+[x] Login
+[x] Login OTP generation
+[x] OTP hashing
+[x] OTP expiry
+[x] OTP attempt tracking
+[x] RefreshToken model
+[x] Device information
+[x] IP information
+[x] Token service created
+[x] Basic JWT generation
+[x] HttpOnly cookie architecture decided
+
+
+Still to complete:
+
+[ ] Verify Login OTP complete flow
+[ ] Refresh Token API
+[ ] Refresh Token Rotation
+[ ] Logout
+[ ] Logout from all devices
+[ ] Forgot Password
+[ ] Reset Password
+[ ] Change Password
+[ ] Authentication middleware
+[ ] Get Current User
+[ ] Update Account
+[ ] Delete Account
+
+
+================================================================================
+30. WHAT WE WILL BUILD AFTER CHAPTER 1
+================================================================================
+
+CHAPTER 2:
+
+Developer Profiles
+Projects
+Skills
+Developer Search
+Filtering
+Project Search
+Join Requests
+Teams
+Team Members
+Roles
+Collaboration
+
+
+CHAPTER 3:
+
+Real-time Chat
+Socket.IO / WebSockets
+Notifications
+Online/Offline Status
+Typing Indicator
+Read Receipts
+AI Developer Matching
+AI Project Matching
+AI Assistant
+AI Recommendations
+Semantic Search
+
+
+CHAPTER 4:
+
+Production Hardening
+Security
+Rate Limiting
+Caching
+Redis
+Database Indexing
+Query Optimization
+Testing
+Logging
+Monitoring
+Cloudinary
+MongoDB Atlas production setup
+Environment Variables
+Docker basics
+CI/CD basics
+GitHub Actions
+Deployment
+HTTPS
+Cloudflare / CDN where required
+
+
+================================================================================
+31. IMPORTANT DEVELOPMENT RULES
+================================================================================
+
+1. Do not put everything in controllers.
+
+2. Reusable business logic should go into services.
+
+3. Database structure should remain inside models.
+
+4. API endpoints should remain inside routes.
+
+5. Common request processing should go into middleware.
+
+6. Temporary authentication data should not unnecessarily be stored inside
+   the User model.
+
+7. Secrets should always remain inside environment variables.
+
+8. Never store plain passwords.
+
+9. Never store raw refresh tokens in the database.
+
+10. Do not expose JWT tokens unnecessarily in API response bodies when using
+    HttpOnly cookies.
+
+11. Validate incoming request data before processing it.
+
+12. Use proper HTTP status codes.
+
+13. Keep API responses consistent.
+
+14. Do not blindly add technologies just because they are "production"
+    technologies.
+
+15. Every technology should solve an actual problem.
+
+
+================================================================================
+32. HOW TO UNDERSTAND THIS PROJECT AS A BEGINNER
+================================================================================
+
+Do NOT try to understand the entire project at once.
+
+Start with this flow:
+
+1. Understand Express server
+2. Understand MongoDB connection
+3. Understand User model
+4. Understand Signup controller
+5. Understand Email Verification
+6. Understand Login
+7. Understand OTP
+8. Understand JWT
+9. Understand Cookies
+10. Understand Refresh Token
+11. Understand Middleware
+12. Understand Services
+
+
+Most important architecture to remember:
+
+Route
+  ↓
+Middleware
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Model
+  ↓
+Database
+
+
+Example:
+
+POST /api/v1/auth/signup
+          |
+          v
+     auth.routes.js
+          |
+          v
+     validation
+          |
+          v
+     auth.controller.js
+          |
+          v
+     user.model.js
+          |
+          v
+       MongoDB
+
+
+For email:
+
+auth.controller.js
+          |
+          v
+email.service.js
+          |
+          v
+       Resend
+
+
+For refresh token:
+
+auth.controller.js
+          |
+          v
+token.service.js
+          |
+          v
+refreshToken.model.js
+          |
+          v
+       MongoDB
+
+
+================================================================================
+33. CURRENT MAIN GOAL
+================================================================================
+
+The immediate goal is NOT to build every feature at once.
+
+First complete Chapter 1.
+
+The target is:
+
+A secure and production-style authentication system where a user can:
+
+1. Create an account
+2. Verify email
+3. Login using password + OTP
+4. Receive JWT authentication through HttpOnly cookies
+5. Stay logged in using refresh tokens
+6. Have multiple active device sessions
+7. Logout from one device
+8. Logout from all devices
+9. Reset/change password
+10. Access protected APIs
+11. Manage their account
+
+
+After Chapter 1 is completely stable, we move to:
+
+Chapter 2 -> Developers + Projects + Teams
+
+Then:
+
+Chapter 3 -> Communication + AI
+
+Then:
+
+Chapter 4 -> Production + Deployment
+
+
+================================================================================
+                        END OF CURRENT PROGRESS
+================================================================================
