@@ -53,10 +53,23 @@ export const verifyRefreshToken = async (refreshToken) => {
         throw new ApiError(401, "Invalid Refresh Token.")
     }
 
-    if(matchedSession.expiresAt < new Date()) {
-        await RefreshToken.findByIdAndDelete( metchedSession._id );
+    if(matchedSession.refreshTokenExpiresAt < new Date()) {
+        await RefreshToken.findByIdAndDelete( matchedSession._id );
         throw new ApiError(401, "Refresh Token expired.")
     }
 
     return matchedSession;
+}
+
+export const verifyAccessToken = async (accessToken) => {
+    if(!accessToken) {
+        throw new ApiError(401, "Access token is required")
+    }
+
+    const decoded = jwt.verify(
+        accessToken,
+        process.env.JWT_ACCESS_SECRET
+    );
+
+    return decoded;
 }
