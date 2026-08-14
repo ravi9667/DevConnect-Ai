@@ -5,15 +5,18 @@ import { VerificationToken } from '../models/verificationToken.model.js';
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
-import { sendVerificationEmail } from '../services/email.service.js';
-import verifyEmailTemplate from '../templates/verifyEmail.templates.js';
+import { sendEmail } from '../services/email.service.js';
+import emailTemplate from '../templates/email.templates.js';
 import { LoginOtp } from '../models/loginOtp.model.js';
 import generateOTP from '../utils/generateOTP.js';
 import loginOtpTemplate from '../templates/loginOtp.template.js';
 import { accessCookieOptions, refreshCookieOptions } from '../utils/cookieOptions.js';
 import validate from '../middlewares/validate.middleware.js';
-import { saveRefreshToken } from '../services/token.service.js';
+import { compareToken, saveRefreshToken, verifyRefreshToken } from '../services/token.service.js';
 import { getRequestInfo } from '../utils/requestInfo.js';
+import { generatePasswordResetToken  } from '../services/token.service.js';
+import { hashToken } from '../services/token.service.js';
+import { RefreshToken } from '../models/refreshToken.model.js';
 
 
 export const signup =  asyncHandler(async (req, res) => {
@@ -31,7 +34,7 @@ export const signup =  asyncHandler(async (req, res) => {
     }
 
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
-    const hasedEmailVerificationToken = await bcrypt.hash(emailVerificationToken, 10);
+    const hashedEmailVerificationToken = await hashToken(emailVerificationToken)
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -45,14 +48,21 @@ export const signup =  asyncHandler(async (req, res) => {
 
     await VerificationToken.create({
         user: newUser._id,
-        token: hasedEmailVerificationToken,
+        token: hashedEmailVerificationToken,
         type: "email-verification",
         expiresAt,
     })
 
     const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${emailVerificationToken}&email=${email}`;
-    const html = verifyEmailTemplate({fullName, verificationLink});
-    await sendVerificationEmail({
+    const html = emailTemplate({
+        fullName,
+        title: "Verify your email",
+        message: "Please verify your email by clicking the button below.",
+        buttonText: "Verify Email",
+        buttonLink: verificationLink,
+        expiryMessage: "This link will expire in 10 minutes."
+    });
+    await sendEmail({
         to: email,
         subject: "Verify Your Email",
         html,
@@ -130,7 +140,7 @@ export const resendVerification = asyncHandler( async (req, res) => {
     })
 
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = await bcrypt.hash(verificationToken, 10);
+    const hashedToken = await hashToken(verificationToken)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await VerificationToken.create({
@@ -141,12 +151,16 @@ export const resendVerification = asyncHandler( async (req, res) => {
     })
 
     const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&email=${email}`;
-    const html = verifyEmailTemplate({
+    const html = emailTemplate({
         fullName: user.fullName,
-        verificationLink,
+        title: "Verify your email",
+        message: "Please verify your email by clicking the button below.",
+        buttonText: "Verify Email",
+        buttonLink: verificationLink,
+        expiryMessage: "This link will expire in 10 minutes."
     });
 
-    await sendVerificationEmail({
+    await sendEmail({
         to: user.email,
         subject: "Verify Your Email",
         html,
@@ -212,7 +226,7 @@ export const login = asyncHandler( async (req, res) => {
     });
 
     // send otp
-    await sendVerificationEmail({
+    await sendEmail({
         to: user.email,
         subject: "Login OTP",
         html,
@@ -261,7 +275,7 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const { refreshToken, jti } = user.generateRefreshToken();
 
     const requestInfo = getRequestInfo(req);
     
@@ -270,6 +284,7 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
         refreshToken: refreshToken,
         refreshTokenExpiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
         clientInfo: requestInfo,
+        jti,
     })
 
     await LoginOtp.deleteOne({ _id: loginOtp._id });
@@ -289,3 +304,201 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
 });
 
 
+export const refreshAccessToken = asyncHandler(async (req, res) => {
+
+    const oldRefreshToken = req.cookies.refreshToken;
+
+    const oldSession = await verifyRefreshToken(oldRefreshToken);
+
+    const user = await User.findById(oldSession.user);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Old session revoke
+    await RefreshToken.findByIdAndDelete(oldSession._id);
+
+    // Generate new tokens
+    const accessToken = user.generateAccessToken();
+
+    const {
+        refreshToken: newRefreshToken,
+        jti: newJti
+    } = user.generateRefreshToken();
+
+    // Save new refresh-token session
+    await saveRefreshToken({
+        userId: user._id,
+        refreshToken: newRefreshToken,
+        refreshTokenExpiresAt: new Date(
+            Date.now() + 15 * 24 * 60 * 60 * 1000
+        ),
+        clientInfo: oldSession.clientInfo,
+        jti: newJti,
+    });
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, accessCookieOptions)
+        .cookie("refreshToken", newRefreshToken, refreshCookieOptions)
+        .json(
+            new ApiResponse(
+                200,
+                "Access token refreshed successfully.",
+                null
+            )
+        );
+});
+
+
+export const forgetPassword = asyncHandler( async (req, res) => {
+
+    const { email } = req.body;
+
+    const user = User.findOne({ email });
+
+    // Security: user exist karta hai ya nahi, ye reveal nahi karna
+    if(!user) {
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                "If an account exists with this email, a password reset link has been sent.",
+                null
+            )
+        )
+    }
+
+    const { tokenId, resetToken } = generatePasswordResetToken();
+    const hashedToken = await hashToken(resetToken);
+
+    const expiresAt = new Date(
+        Date.now() + 15 * 60 * 1000
+    );
+
+    await VerificationToken.create({
+        user: user._id,
+        tokenId,
+        hashedToken,
+        type: "password-reset",
+        expiresAt,
+    });
+
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?tokenId=${tokenId}&token=${resetToken}`;
+
+    const html = emailTemplate({
+        fullName: user.fullName,
+        title: "Reset Your Password",
+        message: "We received a request to reset your password. Click the button below to create a new password.",
+        buttonText: "Reset Password",
+        buttonLink: resetLink,
+        expiryMessage: "This password reset link will expire in 15 minutes.",
+    })
+
+    await sendEmail({
+        to: email,
+        subject: "Reset your Password",
+        html,
+    })
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "If an account exists with this email, a password reset link has been sent.",
+            null,
+        )
+    );
+})
+
+
+
+export const resetPassword = asyncHandler( async (req, res) => {
+
+    const { token, tokenId, email } = req.body;
+
+    const passwordResetToken = await VerificationToken.findOne({ tokenId, type: "password-reset", }).select("+hashedToken");
+    if(!passwordResetToken) {
+        throw new ApiError(
+            400,
+            "Invalid password reset token"
+        )
+    }
+
+    if(!passwordResetToken.expiresAt < new Date()) {
+        await PasswordResetToken.deleteOne({ _id: passwordResetToken._id });
+
+        throw new ApiError(
+            400,
+            "Password reset token has expired !"
+        )
+    }
+
+    const isTokenValid = await compareToken(token, passwordResetToken.hashedToken);
+    if(!isTokenValid) {
+        throw new ApiError(
+            400,
+            "Invalid or expired password reset token"
+        )
+    }
+
+    const user = User.findOne({ _id: passwordResetToken.user });
+    if(!user) {
+        throw new ApiError(
+            404,
+            "User not found"
+        )
+    }
+
+    user.password = password;
+    await user.save();
+
+    await VerificationToken.deleteOne({ _id: passwordResetToken._id});
+
+    await RefreshToken.deleteMany({ user: user._id })
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Password reset successful.",
+            null,
+        )
+    );
+
+});
+
+
+
+export const changePassword = asyncHandler( async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user._id).select("+password");
+    if(!user) {
+        throw new ApiError(
+            404,
+            "User not Found "
+        )
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(currentPassword, user.password);
+    if(!isPasswordCorrect) {
+        throw new ApiError(
+            400,
+            "Current password is incorrect."
+        )
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    await RefreshToken.deleteMany({
+        user: user._id,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Password changed successfully.",
+            null,
+        )
+    );
+})

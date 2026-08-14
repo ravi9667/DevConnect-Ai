@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
 const userSchema = mongoose.Schema(
@@ -93,15 +94,23 @@ userSchema.methods.generateAccessToken = function() {
 };
 
 userSchema.methods.generateRefreshToken = function() {
-    return jwt.sign(
+    const jti = crypto.randomUUID();
+
+    const refreshToken = jwt.sign(
         {
             _id: this._id,
+            jti,
         },
         process.env.JWT_REFRESH_SECRET,
         {
             expiresIn: process.env.JWT_REFRESH_EXPIRY
         }
     );
+
+    return {
+        refreshToken,
+        jti
+    }
 };
 
 export const User = mongoose.model("User", userSchema);
