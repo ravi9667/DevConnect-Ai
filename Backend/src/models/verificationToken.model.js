@@ -9,7 +9,13 @@ const verificationTokenSchema = new mongoose.Schema(
             index: true
         },
 
-        token: {
+        tokenId: {
+            type: String,
+            required: true,
+            unique: true,
+        },
+
+        hashedToken: {
             type: String,
             required: true,
             select: false,

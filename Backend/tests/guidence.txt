@@ -743,7 +743,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const sendVerificationEmail = async ({
+export const sendEmail = async ({
     to,
     subject,
     html,
@@ -765,7 +765,7 @@ Controller does not need to know how Resend works.
 
 Controller simply calls:
 
-sendVerificationEmail(...)
+sendEmail(...)
 
 
 The email service handles the actual email sending.
@@ -1058,7 +1058,7 @@ we keep email HTML separately.
 Controller:
 
 const html =
-    verifyEmailTemplate({
+    emailTemplate({
         fullName,
         verificationLink
     });
@@ -1066,7 +1066,7 @@ const html =
 
 Then:
 
-sendVerificationEmail({
+sendEmail({
     to: email,
     subject: "Verify Your Email",
     html

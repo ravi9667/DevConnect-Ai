@@ -19,17 +19,17 @@ const refreshTokenSchema = new mongoose.Schema(
             required: true,
         },
 
+        jti: {
+            type: String,
+            required: true,
+            unique: true,
+            index: true,
+        },
+
         clientInfo: {
             type: String,
             default: "Unknown Device",
         },
-
-        // jti: {
-        //     type: String,
-        //     required: true,
-        //     unique: true,
-        //     index: true,
-        // },
     },
     { timestamps: true }
 );
