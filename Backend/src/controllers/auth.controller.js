@@ -17,6 +17,9 @@ import { getRequestInfo } from '../utils/requestInfo.js';
 import { generatePasswordResetToken  } from '../services/token.service.js';
 import { hashToken } from '../services/token.service.js';
 import { RefreshToken } from '../models/refreshToken.model.js';
+import { googleOAuth2Client, githubOAuthConfig } from '../config/oAuth.js';
+import { generateUniqueUsername, generateUniqueUsernameSuggestions } from '../utils/usernameGenerator.js';
+import { jwt } from 'zod';
 
 
 export const signup =  asyncHandler(async (req, res) => {
@@ -30,7 +33,13 @@ export const signup =  asyncHandler(async (req, res) => {
 
     const existingUsername = await User.findOne({username});
     if(existingUsername) {
-        throw new ApiError(409, "Username already taken");
+        const suggestions = await generateUniqueUsernameSuggestions(username, 2);
+
+        throw new ApiError(
+            409,
+            "Username already taken",
+            { suggestions }
+        );
     }
 
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
@@ -425,7 +434,7 @@ export const resetPassword = asyncHandler( async (req, res) => {
     }
 
     if(!passwordResetToken.expiresAt < new Date()) {
-        await PasswordResetToken.deleteOne({ _id: passwordResetToken._id });
+        await VerificationToken.deleteOne({ _id: passwordResetToken._id });
 
         throw new ApiError(
             400,
@@ -501,4 +510,334 @@ export const changePassword = asyncHandler( async (req, res) => {
             null,
         )
     );
-})
+});
+
+
+export const googleLogin = asyncHandler( async (req, res) => {
+    const authUrl = googleOAuth2Client.generateAuthUrl({
+        access_type: "offline",
+        scope: [
+            "openid",
+            "profile",
+            "email",
+        ],
+    });
+
+    res.redirect(authUrl);
+});
+
+
+export const googleCallback = asyncHandler( async (req, res) => {
+    const { code } = req.query;
+    if(!code) {
+        throw new ApiError(400, "Google authorization code is missing");
+    }
+
+    const { tokens } = await googleOAuth2Client.getToken(code);
+
+    googleOAuth2Client.setCredentials(tokens);
+
+    const { data } = await googleOAuth2Client.request({
+        url: "https://www.googleapis.com/oauth2/v2/userinfo",
+    });
+
+    const { email, name } = data;
+
+    let user = await User.findOne({email});
+    if(user && user.authProvider !== "google") {
+        throw new ApiError(
+            409,
+            "This is email is already register with another authentication method."
+        )
+    }
+
+    if(!user) {
+        const baseUsername = email.split("@")[0];
+        const unqiueUsername = await generateUniqueUsername(baseUsername);
+
+        user = await User.create({
+            fullName: name,
+            username: unqiueUsername,
+            email,
+            authProvider: "google",
+            isEmailVerified: true,
+        })
+    }
+
+    const accessToken = user.generateAccessToken();
+    const { refreshToken, jti } = user.generateRefreshToken();
+
+    await saveRefreshToken({
+        userId: user._id,
+        refreshToken,
+        refreshTokenExpiresAt: new Date(
+            Date.now() + 15 * 24 * 60 * 60 * 1000
+        ),
+        clientInfo: req.headers["user-agent"],
+        jti,
+    });
+
+    res
+        .cookie("accessToken", accessToken, accessCookieOptions)
+        .cookie("refreshToken", refreshToken, refreshCookieOptions);
+
+    return res.redirect("http://localhost:5173/");
+});
+
+export const githubLogin = asyncHandler(async (req, res) => {
+    const githubAuthUrl =
+        `https://github.com/login/oauth/authorize` +
+        `?client_id=${githubOAuthConfig.clientId}` +
+        `&redirect_uri=${githubOAuthConfig.callbackUrl}` +
+        `&scope=user:email`;
+
+    return res.redirect(githubAuthUrl);
+});
+
+export const githubCallback = asyncHandler( async (req, res) => {
+    const { code } = req.query;
+    if(!code) {
+        throw new ApiError(
+            400,
+            "Github authorization code is missing."
+        )
+    }
+
+    const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+        method: "POST",
+
+        headers: {
+            Accept: "application/json", "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+            clientId: githubOAuthConfig.clientId,
+            client_secret: githubOAuthConfig.clientSecret,
+            code,
+            redirect_url: githubOAuthConfig.callbackUrl,
+        })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    const githubAccessToken = tokenData.access_token;
+
+    if (!githubAccessToken) {
+        throw new ApiError(
+            401,
+            "Failed to get access token from GitHub"
+        );
+    }
+
+    const userResponse = await fetch("https://api.github.com/user", {
+        headers: {
+            Authorization: `Bearer ${githubAccessToken}`,
+            Accept: "application/vnd.gitub+json",
+        },
+    });
+    const githubUser = await userResponse.json();
+
+    const emailResponse = await fetch("https://api.github.com/user/emails", {
+        headers: {
+            Authorization: `Bearer ${githubAccessToken}`,
+            Accept: "application/vnd.github+json",
+        },
+    })
+    const githubEmails = await emailResponse.json();
+
+    const primaryEmail = githubEmails.find( (email) => email.primary && email.verified)?.email;
+    if(!primaryEmail) {
+        throw new ApiError(
+            400,
+            "Github account does not have a verified email"
+        );
+    }
+
+    let user = await User.findOne({ email: primaryEmail });
+    if (user && user.authProvider !== "github") {
+        throw new ApiError(
+            409,
+            "This is email is already register with another authentication method."
+        )
+    }
+
+    if (!user) {
+        const baseUsername = email.split("@")[0];
+        const unqiueUsername = await generateUniqueUsername(baseUsername);
+
+        user = await User.create({
+            fullName: githubUser.name || githubUser.login,
+            username: unqiueUsername,
+            email: primaryEmail,
+            authProvider: "github",
+            isEmailVerified: true,
+        })
+    }
+
+    const accessToken = user.generateAccessToken();
+    const { refreshToken, jti } = user.generateRefreshToken();
+
+    await saveRefreshToken({
+        userId: user._id,
+        refreshToken,
+        refreshTokenExpiresAt: new Date(
+            Date.now() + 15 * 24 * 60 * 60 * 1000
+        ),
+        clientInfo: req.headers["user-agent"],
+        jti,
+    });
+
+    res
+        .cookie("accessToken", accessToken, accessCookieOptions)
+        .cookie("refreshToken", refreshToken, refreshCookieOptions);
+
+    return res.redirect("http://localhost:5173/");
+});
+
+
+export const logout = asyncHandler( async (req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+        throw new ApiError(
+            401,
+            "Refresh token is missing."
+        )
+    }
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    const session = await RefreshToken.findOne({ user: decoded._id, jti: decoded.jti }).select("+refreshToken");
+    if (!session) {
+        throw new ApiError(
+            401,
+            "Session not found."
+        )
+    }
+
+    const isMatched = await compareToken(refreshToken, session.refreshToken);
+    if (!isMatched) {
+        throw new ApiError(
+            401,
+            "Refresh token is Invalid."
+        )
+    }
+
+    await RefreshToken.findByIdAndDelete(session._id);
+
+    res.clearCookie("accessToken", accessToken, accessCookieOptions);
+    res.clearCookie("refreshToken", refreshToken, refreshCookieOptions);
+    
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "successfully logged out."
+        )
+    )
+});
+
+export const logoutAllDevices = asyncHandler (async (req, res) => {
+
+    await RefreshToken.deleteMany({ user: req.user._id});
+
+    res.clearCookie("accessToken", accessCookieOptions);
+    res.clearCookie("refreshToken", refreshCookieOptions);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Successfully logged out from all devices."
+        )
+    );
+});
+
+
+export const getCurrentUser = asyncHandler (async (req, res) => {
+    const userId = req.user._id;
+
+    const user = User.findById(userId);
+    if (!user) {
+        throw new ApiError(
+            404,
+            "User not found"
+        )
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Current user fetched successfully.",
+            user,
+        )
+    );
+});
+
+
+export const updateAccount = asyncHandler (async (req, res) => {
+    const { fullName, username } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if(!user) {
+        throw new ApiError(
+            404,
+            "User not found."
+        )
+    }
+
+    if (username && username !== user.username) {
+        const existingUsername = await User.findOne({username, _id: {$ne: user._id}});
+        if (existingUsername) {
+            throw new ApiError(
+                409,
+                "Username Already exists"
+            )
+        }
+    }
+
+    if(fullName !== undefined) {
+        user.fullName = fullName;
+    }
+
+    if (username !== undefined) {
+        user.username = username;
+    }
+
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Account Updated Successfully",
+            {
+                fullName: user.fullName,
+                username: user.username,
+                email: user.email,
+                authProvider: user.authProvider,
+                isEmailVerified: user.isEmailVerified
+            }
+        )
+    )
+});
+
+
+export const deleteAccount = asyncHandler (async (req, res) => {
+    const user = await User.findById(req.user._id);
+    if(!user) {
+        throw new ApiError(
+            404,
+            "User not found"
+        );
+    }
+
+    user.isActive = false;
+
+    await user.save();
+
+    await RefreshToken.deleteMany({ user: req.user._id });
+
+    res.clearCookie("accessToken", accessCookieOptions);
+    res.clearCookie("refreshToken", refreshCookieOptions);
+
+    return res.status(200).json(
+        200,
+        "Account Deleted Successfully"
+    )
+});

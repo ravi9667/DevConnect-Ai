@@ -74,6 +74,7 @@ export const resetPasswordSchema = z.object({
         .min(8),
 });
 
+
 export const changePasswordSchema = z.object({
     currentPassword: z
         .string()
@@ -82,4 +83,20 @@ export const changePasswordSchema = z.object({
     newPassword: z
         .string()
         .min(8),
+});
+
+export const updateAccountSchema = z.object({
+    fullName: z
+        .string()
+        .min(3)
+        .max(50)
+        .trim()
+        .optional(),
+
+    username: z
+        .string()
+        .min(3)
+        .max(30)
+        .trim()
+        .optional(),
 })

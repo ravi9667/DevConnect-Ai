@@ -1,0 +1,2 @@
+1 - continue with google(google OAuth) completed but after completion we need to send success email to user,
+and its a remaining task we need to complete after writing a fetchUser/fetchMe api and all related logics.
