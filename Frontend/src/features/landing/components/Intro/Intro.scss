@@ -1,0 +1,135 @@
+.intro {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding: 24px;
+    background: #050505;
+    color: #ffffff;
+    overflow: hidden;
+
+    &__content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+    }
+
+    &__title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin: 0;
+        font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        font-size: clamp(2.5rem, 6vw, 5.5rem);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        white-space: nowrap;
+    }
+
+    &__logo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: clamp(70px, 10vw, 105px);
+        height: clamp(70px, 10vw, 105px);
+        flex-shrink: 0;
+
+        img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+
+    &__title span:last-child {
+        color: #2997ff;
+    }
+
+    &__subtitle {
+        margin: 8px 0 0;
+        font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.6);
+    }
+}
+
+html.intro-active,
+body.intro-active {
+    overflow: hidden;
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .intro {
+        padding: 20px;
+
+        &__title {
+            gap: 8px;
+            font-size: clamp(2rem, 10vw, 3.5rem);
+        }
+
+        &__logo {
+            width: clamp(58px, 16vw, 78px);
+            height: clamp(58px, 16vw, 78px);
+        }
+
+        &__subtitle {
+            margin-top: 12px;
+            font-size: clamp(0.7rem, 3vw, 0.95rem);
+            letter-spacing: 0.06em;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .intro {
+        padding: 16px;
+
+        &__title {
+            gap: 6px;
+            font-size: clamp(1.65rem, 9vw, 2.5rem);
+            letter-spacing: -0.045em;
+        }
+
+        &__logo {
+            width: clamp(48px, 15vw, 62px);
+            height: clamp(48px, 15vw, 62px);
+        }
+
+        &__subtitle {
+            margin-top: 10px;
+            font-size: clamp(0.62rem, 2.8vw, 0.8rem);
+            letter-spacing: 0.04em;
+        }
+    }
+}
+
+@media (max-width: 360px) {
+    .intro {
+        &__title {
+            gap: 5px;
+            font-size: 1.5rem;
+        }
+
+        &__logo {
+            width: 44px;
+            height: 44px;
+        }
+
+        &__subtitle {
+            font-size: 0.58rem;
+        }
+    }
+}
