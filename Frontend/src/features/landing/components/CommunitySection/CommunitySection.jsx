@@ -256,7 +256,7 @@ const CommunitySection = () => {
     };
 
     return (
-        <section ref={sectionRef} className="community">
+        <section ref={sectionRef} className="community" id="community">
             <div className="community__ambient-glow" />
 
             <div className="community__container">

@@ -1,7 +1,10 @@
 import "./Navbar.scss";
+import { useNavigate } from "react-router-dom";
 import logo from "../../../../assets/devConnect_Ai_logo.png";
 
 const Navbar = ({ heroComplete }) => {
+    const navigate = useNavigate();
+
     return (
         <nav className={`navbar ${heroComplete ? "navbar--visible" : ""}`}>
             <div className="navbar__container">
@@ -19,9 +22,10 @@ const Navbar = ({ heroComplete }) => {
                     <a href="#features">Features</a>
                     <a href="#how-it-works">How It Works</a>
                     <a href="#community">Community</a>
+                    <a href="#ai-features">Ai-Features</a>
                 </div>
 
-                <button className="navbar__cta">
+                <button className="navbar__cta" onClick={() => navigate("/signup")}>
                     <span>Get Started</span>
                 </button>
             </div>

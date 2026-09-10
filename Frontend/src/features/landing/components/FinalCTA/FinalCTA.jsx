@@ -1,8 +1,11 @@
 import React from "react";
 import logo from "../../../../assets/devConnect_Ai_logo.png";
+import { useNavigate } from "react-router-dom";
 import "./FinalCTA.scss";
 
 const FinalCTA = () => {
+    const navigate = useNavigate();
+
     return (
         <section className="final-cta">
 
@@ -26,7 +29,7 @@ const FinalCTA = () => {
                 </p>
 
                 <div className="final-cta__actions">
-                    <button className="final-cta__button final-cta__button--primary">
+                    <button className="final-cta__button final-cta__button--primary" onClick={() => navigate("/signup")}>
                         <span>Start Building</span>
                         <span className="final-cta__arrow">↗</span>
                     </button>

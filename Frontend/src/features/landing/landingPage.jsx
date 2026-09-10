@@ -3,7 +3,7 @@ import Intro from './components/Intro/Intro';
 import Navbar from './components/Navbar/Navbar';
 import Hero from './components/Hero/Hero';
 import ValueSection from './components/ValueSection/ValueSection';
-import HowItWorks from './components/HowItWorks/HowItworks';
+import HowItWorks from "./components/HowItWorks/HowItWorks"
 import AiSection from './components/AiSection/AiSection';
 import CommunitySection from './components/CommunitySection/CommunitySection';
 import ProjectSection from './components/ProjectSection/ProjectSection';
@@ -28,5 +28,6 @@ const LandingPage = () => {
         </main>
     )
 }
+
 
 export default LandingPage;

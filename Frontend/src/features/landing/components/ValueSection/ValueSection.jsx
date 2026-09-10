@@ -86,7 +86,7 @@ const ValueSection = () => {
     };
 
     return (
-        <section ref={sectionRef} className="value-section">
+        <section ref={sectionRef} className="value-section" id="features">
             <div className="value-section__container">
 
                 <div className="value-section__header">

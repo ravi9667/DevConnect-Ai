@@ -277,7 +277,7 @@ const AiSection = () => {
     };
 
     return (
-        <section ref={sectionRef} className="ai-section">
+        <section ref={sectionRef} className="ai-section" id="ai-features">
             <div className="ai-section__ambient-glow" />
 
             <div className="ai-section__container">

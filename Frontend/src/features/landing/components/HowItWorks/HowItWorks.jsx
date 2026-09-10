@@ -101,7 +101,7 @@ const HowItWorks = () => {
     };
 
     return (
-        <section ref={sectionRef} className="how-it-works">
+        <section ref={sectionRef} className="how-it-works" id="how-it-works">
             <div className="how-it-works__container">
                 <div className="how-it-works__header">
                     <span

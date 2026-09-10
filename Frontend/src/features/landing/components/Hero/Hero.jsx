@@ -1,12 +1,13 @@
 import { useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
-
+import { useNavigate } from "react-router-dom";
 import "./Hero.scss";
 import HeroScene from "./components/HeroScene/HeroScene";
 
 const Hero = ({ introComplete, onComplete }) => {
-    const heroRef = useRef(null);
+    const navigate = useNavigate();
 
+    const heroRef = useRef(null);
     const eyebrowRef = useRef(null);
     const titleRef = useRef(null);
     const descriptionRef = useRef(null);
@@ -25,9 +26,7 @@ const Hero = ({ introComplete, onComplete }) => {
 
         const context = gsap.context(() => {
 
-            // -------------------------
             // Initial Hero state
-            // -------------------------
 
             gsap.set(eyebrowRef.current, {
                 opacity: 0,
@@ -56,9 +55,7 @@ const Hero = ({ introComplete, onComplete }) => {
             });
 
 
-            // -------------------------
             // Hero Timeline
-            // -------------------------
 
             const timeline = gsap.timeline({
                 onComplete: () => {
@@ -178,12 +175,14 @@ const Hero = ({ introComplete, onComplete }) => {
                 >
                     <button
                         className="hero__button hero__button--primary"
+                        onClick={() => navigate("/signup")}
                     >
                         Get Started
                     </button>
 
                     <button
                         className="hero__button hero__button--secondary"
+                        onClick={() => navigate("/login")}
                     >
                         Explore Platform
                     </button>
