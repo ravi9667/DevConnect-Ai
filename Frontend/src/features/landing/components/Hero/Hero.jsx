@@ -155,9 +155,9 @@ const Hero = ({ introComplete, onComplete }) => {
                 >
                     Build.
                     <br />
-                    Collaborate.
+                    <span className="collab-title"> Collaborate. </span>
                     <br />
-                    <span>Ship Together.</span>
+                    <span className="ship-title">Ship Together.</span>
                 </h1>
 
                 <p

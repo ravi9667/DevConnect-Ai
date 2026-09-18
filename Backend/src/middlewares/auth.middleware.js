@@ -3,7 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { verifyAccessToken } from "../services/token.service.js";
 
-export const authMiddleware = asyncHandler( async (req, res, next) => {
+const authMiddleware = asyncHandler( async (req, res, next) => {
     const accessToken = req.cookies?.accessToken;
     if(!accessToken) {
         throw new ApiError(
@@ -23,3 +23,5 @@ export const authMiddleware = asyncHandler( async (req, res, next) => {
 
     next()
 })
+
+export default authMiddleware;

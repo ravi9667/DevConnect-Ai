@@ -49,17 +49,18 @@
 
     &__title {
         margin: 0;
-
         font-size: clamp(4rem, 8vw, 8rem);
         font-weight: 700;
-
         line-height: 0.95;
-
         letter-spacing: -0.06em;
-
         color: #ffffff;
 
-        span {
+        .collab-title {
+            color: #2997ff;
+            text-shadow: 0 0 35px rgba(41, 151, 255, 0.16);
+        }
+
+        .ship-title{
             color: rgba(255, 255, 255, 0.38);
         }
     }

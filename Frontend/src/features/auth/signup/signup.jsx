@@ -13,6 +13,9 @@ import hide from "../../../assets/hide.png";
 import unhide from "../../../assets/eye.png";
 import google from "../../../assets/google.png";
 import github from "../../../assets/github.png";
+import { signupUser } from "../../../services/auth.service";
+import Loader from "../../../components/common/Loader/Loader";
+
 
 const Signup = () => {
     const signupRef = useRef(null);
@@ -21,14 +24,61 @@ const Signup = () => {
     const [isDark, setIsDark] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-    const [formData, setFormData] = useState({
+    const [isLoading, setIsLoading] = useState(false);
+    const [signupFormData, setSignupFormData] = useState({
         fullName: "",
         email: "",
         username: "",
         password: "",
         confirmPassword: "",
     });
+
+    const handleFormInput = (field, event) => {
+        setSignupFormData({ ...signupFormData, [field]: event.target.value });
+    }
+    
+    const handleSignup = async (event) => {
+        event.preventDefault();
+
+        const { fullName, email, username, password, confirmPassword } = signupFormData;
+
+        const userData = {
+            fullName,
+            email,
+            username,
+            password
+        }
+
+        if (
+            !fullName.trim() ||
+            !email.trim() ||
+            !username.trim() ||
+            !password.trim() ||
+            !confirmPassword.trim()
+        ) {
+            alert("All fields are required");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            alert("Passwords do not match");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+
+            const data = await signupUser(userData);
+            console.log(data.data);
+            if (data?.data.statusCode === 201 && data?.data.success) {
+                navigate("/signup-success");
+            }
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useLayoutEffect(() => {
         const ctx = gsap.context(() => {
@@ -60,15 +110,6 @@ const Signup = () => {
         return () => ctx.revert();
     }, []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
-
     const handleThemeToggle = () => {
         const nextTheme = !isDark;
         setIsDark(nextTheme);
@@ -89,15 +130,14 @@ const Signup = () => {
             ref={signupRef}
             className={`signup-page ${isDark ? "dark" : "light"}`}
         >
+            {isLoading && <Loader />}
             <div className="page-frame">
                 <div className="signup-shell">
                     <section className="brand-panel">
                         <div className="brand-content">
                             <div className="brand-logo">
                                 <img src={logo} alt="DevConnect AI" />
-                                <span>
-                                    DevConnect <b>AI</b>
-                                </span>
+                                <span> DevConnect <b>AI</b> </span>
                             </div>
 
                             <div className="brand-copy">
@@ -125,10 +165,7 @@ const Signup = () => {
 
                                     <div>
                                         <h3>Connect</h3>
-                                        <p>
-                                            Find developers and build meaningful
-                                            connections.
-                                        </p>
+                                        <p>Find developers and build meaningful connections.</p>
                                     </div>
                                 </div>
 
@@ -139,10 +176,7 @@ const Signup = () => {
 
                                     <div>
                                         <h3>Collaborate</h3>
-                                        <p>
-                                            Work together on projects and ideas
-                                            in real-time.
-                                        </p>
+                                        <p>Work together on projects and ideas in real-time.</p>
                                     </div>
                                 </div>
 
@@ -153,10 +187,7 @@ const Signup = () => {
 
                                     <div>
                                         <h3>Build & Ship</h3>
-                                        <p>
-                                            Turn ideas into products and ship
-                                            them faster.
-                                        </p>
+                                        <p>Turn ideas into products and shipthem faster.</p>
                                     </div>
                                 </div>
                             </div>
@@ -171,21 +202,14 @@ const Signup = () => {
                     <section className="form-panel">
                         <div className="form-top">
                             <div>
-                                <span className="form-eyebrow">
-                                    GET STARTED
-                                </span>
-
+                                <span className="form-eyebrow"> GET STARTED </span>
                                 <h2>Create your account</h2>
-
-                                <p>
-                                    Join DevConnect AI and start your journey.
-                                </p>
+                                <p> Join DevConnect AI and start your journey.</p>
                             </div>
 
                             <button
                                 ref={toggleRef}
-                                className={`theme-toggle ${isDark ? "active" : ""
-                                    }`}
+                                className={`theme-toggle ${isDark ? "active" : ""}`}
                                 onClick={handleThemeToggle}
                                 aria-label="Toggle theme"
                             >
@@ -200,9 +224,7 @@ const Signup = () => {
                         <form className="signup-form">
                             <div className="form-grid">
                                 <div className="field">
-                                    <label htmlFor="fullName">
-                                        Full Name
-                                    </label>
+                                    <label htmlFor="fullName">Full Name</label>
 
                                     <div className="input-box">
                                         <img src={user} alt="" />
@@ -211,17 +233,16 @@ const Signup = () => {
                                             name="fullName"
                                             type="text"
                                             placeholder="Enter your full name"
-                                            value={formData.fullName}
-                                            onChange={handleChange}
+                                            required
+                                            value={signupFormData.fullName}
+                                            onChange={(e) => handleFormInput("fullName", e)}
                                             autoComplete="name"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="field">
-                                    <label htmlFor="email">
-                                        Email Address
-                                    </label>
+                                    <label htmlFor="email">Email Address</label>
 
                                     <div className="input-box">
                                         <img src={email} alt="" />
@@ -230,8 +251,9 @@ const Signup = () => {
                                             name="email"
                                             type="email"
                                             placeholder="Enter your email"
-                                            value={formData.email}
-                                            onChange={handleChange}
+                                            required
+                                            value={signupFormData.email}
+                                            onChange={(e) => handleFormInput("email", e)}
                                             autoComplete="email"
                                         />
                                     </div>
@@ -249,8 +271,9 @@ const Signup = () => {
                                         name="username"
                                         type="text"
                                         placeholder="Choose a username"
-                                        value={formData.username}
-                                        onChange={handleChange}
+                                        value={signupFormData.username}
+                                        onChange={(e) => handleFormInput("username", e)}
+                                        required
                                         autoComplete="username"
                                     />
                                 </div>
@@ -258,9 +281,7 @@ const Signup = () => {
 
                             <div className="form-grid">
                                 <div className="field">
-                                    <label htmlFor="password">
-                                        Password
-                                    </label>
+                                    <label htmlFor="password">Password</label>
 
                                     <div className="input-box">
                                         <img src={password} alt="" />
@@ -268,32 +289,21 @@ const Signup = () => {
                                         <input
                                             id="password"
                                             name="password"
-                                            type={
-                                                showPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
+                                            type={showPassword ? "text": "password"}
                                             placeholder="Create a password"
-                                            value={formData.password}
-                                            onChange={handleChange}
+                                            value={signupFormData.password}
+                                            onChange={(e) => handleFormInput("password", e)}
                                             autoComplete="new-password"
+                                            required
                                         />
 
                                         <button
                                             type="button"
                                             className="password-toggle"
-                                            onClick={() =>
-                                                setShowPassword(
-                                                    !showPassword
-                                                )
-                                            }
+                                            onClick={() => setShowPassword(!showPassword)}
                                         >
                                             <img
-                                                src={
-                                                    showPassword
-                                                        ? hide
-                                                        : unhide
-                                                }
+                                                src={showPassword ? hide : unhide}
                                                 alt=""
                                             />
                                         </button>
@@ -301,9 +311,7 @@ const Signup = () => {
                                 </div>
 
                                 <div className="field">
-                                    <label htmlFor="confirmPassword">
-                                        Confirm Password
-                                    </label>
+                                    <label htmlFor="confirmPassword">Confirm Password</label>
 
                                     <div className="input-box">
                                         <img src={password} alt="" />
@@ -311,32 +319,21 @@ const Signup = () => {
                                         <input
                                             id="confirmPassword"
                                             name="confirmPassword"
-                                            type={
-                                                showConfirmPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
+                                            type={showConfirmPassword ? "text" : "password"}
                                             placeholder="Confirm your password"
-                                            value={formData.confirmPassword}
-                                            onChange={handleChange}
+                                            value={signupFormData.confirmPassword}
+                                            onChange={(e) => handleFormInput("confirmPassword", e)}
+                                            required
                                             autoComplete="new-password"
                                         />
 
                                         <button
                                             type="button"
                                             className="password-toggle"
-                                            onClick={() =>
-                                                setShowConfirmPassword(
-                                                    !showConfirmPassword
-                                                )
-                                            }
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                         >
                                             <img
-                                                src={
-                                                    showConfirmPassword
-                                                        ? hide
-                                                        : unhide
-                                                }
+                                                src={showConfirmPassword ? hide : unhide}
                                                 alt=""
                                             />
                                         </button>
@@ -351,7 +348,7 @@ const Signup = () => {
                                 </label>
                             </div>
 
-                            <button className="create-button" type="submit">
+                            <button className="create-button" type="submit" onClick={handleSignup} disabled={isLoading}>
                                 <span>Create Account</span>
                                 <span>→</span>
                             </button>

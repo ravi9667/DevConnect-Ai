@@ -42,27 +42,30 @@ export const signup =  asyncHandler(async (req, res) => {
         );
     }
 
+    const tokenId = crypto.randomUUID();
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
-    const hashedEmailVerificationToken = await hashToken(emailVerificationToken)
+    const hashedEmailVerificationToken = await hashToken(emailVerificationToken);
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
+    const normalizedEmail = email.trim().toLowerCase();
     const newUser = new User({
         fullName,
         username,
-        email,
+        email: normalizedEmail,
         password,
     });
+
     await newUser.save();
 
     await VerificationToken.create({
         user: newUser._id,
-        token: hashedEmailVerificationToken,
+        tokenId,
+        hashedToken: hashedEmailVerificationToken,
         type: "email-verification",
         expiresAt,
-    })
+    });
 
-    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${emailVerificationToken}&email=${email}`;
+    const verificationLink = `${process.env.CLIENT_URL}/verify-email?tokenId=${tokenId}&token=${emailVerificationToken}&email=${encodeURIComponent(normalizedEmail)}`;
     const html = emailTemplate({
         fullName,
         title: "Verify your email",
@@ -84,49 +87,72 @@ export const signup =  asyncHandler(async (req, res) => {
 });
 
 
-export const verifyEmail = asyncHandler( async (req, res) => {
+export const verifyEmail = asyncHandler(async (req, res) => {
+    const { token, tokenId, email } = req.query;
 
-    const { token, email } = req.query;
+    console.log("Verification Request:", {
+        tokenId,
+        email,
+    });
 
-    if((!token) || (!email)) {
+    if (!token || !email || !tokenId) {
         throw new ApiError(400, "Verification token is required");
     }
 
-    const user = await User.findOne({ email })
-    if(!user) {
-        throw new ApiError(404, "User not Found");
+    const user = await User.findOne({
+        email: email.trim().toLowerCase(),
+    });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
     }
+
+    console.log("User ID:", user._id);
 
     const verificationToken = await VerificationToken.findOne({
         user: user._id,
+        tokenId,
         type: "email-verification",
-    }).select("+token");
-    if(!verificationToken) {
-        throw new ApiError(400, "Verification Token not Found.")
+    }).select("+hashedToken");
+
+    console.log("Verification Token:", verificationToken);
+
+    if (!verificationToken) {
+        throw new ApiError(400, "Verification Token not Found.");
     }
 
-    if(user.isEmailVerified) {
-        throw new ApiError(400, "Email already registered");
+    if (user.isEmailVerified) {
+        throw new ApiError(400, "Email already verified");
     }
 
-    if(verificationToken.expiresAt < new Date()) {
-        await VerificationToken.deleteOne({_id: verificationToken._id,})
-        throw new ApiError(400, "Verification link is Expired.");
+    if (verificationToken.expiresAt < new Date()) {
+        await VerificationToken.deleteOne({
+            _id: verificationToken._id,
+        });
+
+        throw new ApiError(400, "Verification link is expired.");
     }
 
-    const isTokenValid = await bcrypt.compare(token, verificationToken.token)
-    if(!isTokenValid) {
-        throw new ApiError(400, "Invalid Verification link");
+    const isTokenValid = await compareToken(
+        token,
+        verificationToken.hashedToken
+    );
+
+    if (!isTokenValid) {
+        throw new ApiError(400, "Invalid verification link");
     }
 
     user.isEmailVerified = true;
+
     await user.save();
 
-    await VerificationToken.deleteOne({ _id: verificationToken._id })
+    await VerificationToken.deleteOne({
+        _id: verificationToken._id,
+    });
 
-    return res.status(200).json(
-        new ApiResponse(200, "Email Verified Successfully.")
-    )
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "Email verified successfully."));
 });
 
 
@@ -148,18 +174,20 @@ export const resendVerification = asyncHandler( async (req, res) => {
         type: "email-verification",
     })
 
+    const tokenId = crypto.randomUUID();
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = await hashToken(verificationToken)
+    const hashedToken = await hashToken(verificationToken);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await VerificationToken.create({
         user: user._id,
-        token: hashedToken,
+        tokenId,
+        hashedToken,
         type: "email-verification",
         expiresAt,
     })
 
-    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&email=${email}`;
+    const verificationLink = `${process.env.CLIENT_URL}/verify-email?tokenId=${tokenId}&token=${verificationToken}&email=${email}`;
     const html = emailTemplate({
         fullName: user.fullName,
         title: "Verify your email",
@@ -367,7 +395,6 @@ export const forgetPassword = asyncHandler( async (req, res) => {
 
     const user = User.findOne({ email });
 
-    // Security: user exist karta hai ya nahi, ye reveal nahi karna
     if(!user) {
         return res.status(200).json(
             new ApiResponse(
