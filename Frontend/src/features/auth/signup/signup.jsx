@@ -70,8 +70,21 @@ const Signup = () => {
 
             const data = await signupUser(userData);
             console.log(data.data);
+
             if (data?.data.statusCode === 201 && data?.data.success) {
-                navigate("/signup-success");
+                const verificationSessionId =
+                    data?.data?.data?.verificationSessionId;
+
+                if (!verificationSessionId) {
+                    alert("Verification session could not be created.");
+                    return;
+                }
+
+                navigate("/signup-success", {
+                    state: {
+                        verificationSessionId,
+                    },
+                });
             }
         } catch (error) {
             console.log(error);

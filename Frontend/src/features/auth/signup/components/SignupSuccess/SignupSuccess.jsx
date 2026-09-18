@@ -1,6 +1,67 @@
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+    getVerificationStatus,
+} from "../../../../../services/auth.service";
 import "./SignupSuccess.scss";
 
 const SignupSuccess = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const verificationSessionId =
+        location.state?.verificationSessionId;
+
+    useEffect(() => {
+        if (!verificationSessionId) {
+            navigate("/signup", { replace: true });
+            return;
+        }
+
+        let isMounted = true;
+        let intervalId;
+
+        const checkVerificationStatus = async () => {
+            try {
+                const response = await getVerificationStatus(
+                    verificationSessionId
+                );
+
+                const isVerified =
+                    response?.data?.isEmailVerified;
+
+                if (isVerified && isMounted) {
+                    clearInterval(intervalId);
+
+                    navigate("/desktop", {
+                        replace: true,
+                    });
+                }
+            } catch (error) {
+                // Session expiration or other errors
+                // are handled silently during polling.
+                console.error(
+                    "Polling verification status failed:",
+                    error.response?.data || error.message
+                );
+            }
+        };
+
+        // Check immediately
+        checkVerificationStatus();
+
+        // Check every 3 seconds
+        intervalId = setInterval(
+            checkVerificationStatus,
+            3000
+        );
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [verificationSessionId, navigate]);
+
     return (
         <main className="signup-success-page">
             <div className="success-card">
@@ -30,8 +91,8 @@ const SignupSuccess = () => {
 
                 <p className="success-description">
                     Your account has been created successfully.
-                    You are just one step away from joining our developer
-                    community.
+                    You are just one step away from joining our
+                    developer community.
                 </p>
 
                 <div className="verification-box">
@@ -62,24 +123,32 @@ const SignupSuccess = () => {
 
                     <div>
                         <h3>Verify your email address</h3>
+
                         <p>
-                            We have sent a verification link to your email
-                            address. Please check your inbox and click the
-                            verification link to complete your signup.
+                            We have sent a verification link to
+                            your email address. Please check your
+                            inbox and click the verification link
+                            to complete your signup.
+                        </p>
+
+                        <p>
+                            This page will automatically continue
+                            when your email is verified.
                         </p>
                     </div>
                 </div>
 
                 <div className="success-footer">
                     <span>Didn't receive the email?</span>
+
                     <button type="button">
                         Resend verification email
                     </button>
                 </div>
 
                 <p className="security-note">
-                    Check your spam or promotions folder if you can't find
-                    the email.
+                    Check your spam or promotions folder if you
+                    can't find the email.
                 </p>
             </div>
         </main>

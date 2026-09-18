@@ -22,6 +22,13 @@ import { generateUniqueUsername, generateUniqueUsernameSuggestions } from '../ut
 import { jwt } from 'zod';
 
 
+const hashVerificationSession = (sessionId) => {
+    return crypto
+        .createHash("sha256")
+        .update(sessionId)
+        .digest("hex");
+};
+
 export const signup =  asyncHandler(async (req, res) => {
 
     const { fullName, username, email, password } = req.body;
@@ -43,8 +50,27 @@ export const signup =  asyncHandler(async (req, res) => {
     }
 
     const tokenId = crypto.randomUUID();
-    const emailVerificationToken = crypto.randomBytes(32).toString("hex");
-    const hashedEmailVerificationToken = await hashToken(emailVerificationToken);
+
+    const emailVerificationToken = crypto
+        .randomBytes(32)
+        .toString("hex");
+
+    const hashedEmailVerificationToken = await hashToken(
+        emailVerificationToken
+    );
+
+    // Session ID for cross-device verification tracking
+    const verificationSessionId = crypto
+        .randomBytes(32)
+        .toString("hex");
+
+    const verificationSessionHash = hashVerificationSession(
+        verificationSessionId
+    );
+
+    const verificationSessionExpiresAt = new Date(
+        Date.now() + 15 * 60 * 1000
+    );
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     const normalizedEmail = email.trim().toLowerCase();
@@ -53,6 +79,8 @@ export const signup =  asyncHandler(async (req, res) => {
         username,
         email: normalizedEmail,
         password,
+        verificationSessionHash,
+        verificationSessionExpiresAt,
     });
 
     await newUser.save();
@@ -81,10 +109,65 @@ export const signup =  asyncHandler(async (req, res) => {
     })
 
     return res.status(201).json(
-        new ApiResponse(201, "Account Created Successfully. please verify your email", null)
+        new ApiResponse(
+            201,
+            "Account Created Successfully. Please verify your email",
+            {
+                verificationSessionId,
+            }
+        )
     );
 
 });
+
+
+export const getVerificationStatus = asyncHandler(
+    async (req, res) => {
+        const { sessionId } = req.query;
+
+        if (!sessionId) {
+            throw new ApiError(
+                400,
+                "Verification session ID is required"
+            );
+        }
+
+        const sessionHash = hashVerificationSession(sessionId);
+
+        const user = await User.findOne({
+            verificationSessionHash: sessionHash,
+        }).select(
+            "+verificationSessionHash"
+        );
+
+        if (!user) {
+            throw new ApiError(
+                404,
+                "Verification session not found"
+            );
+        }
+
+        if (
+            user.verificationSessionExpiresAt &&
+            user.verificationSessionExpiresAt < new Date()
+        ) {
+            throw new ApiError(
+                410,
+                "Verification session has expired"
+            );
+        }
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                "Verification status fetched successfully",
+                {
+                    isEmailVerified: user.isEmailVerified,
+                }
+            )
+        );
+    }
+);
 
 
 export const verifyEmail = asyncHandler(async (req, res) => {

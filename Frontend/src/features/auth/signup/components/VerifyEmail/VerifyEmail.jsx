@@ -1,16 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { verifyEmail } from '../../../../../services/auth.service'
+import { verifyEmail } from "../../../../../services/auth.service";
 import "./VerifyEmail.scss";
 
 const VerifyEmail = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const hasVerified = useRef(false);
 
     const [status, setStatus] = useState("loading");
     const [message, setMessage] = useState("");
 
     useEffect(() => {
+        if (hasVerified.current) return;
+
+        hasVerified.current = true;
+
         const verifyUserEmail = async () => {
             const token = searchParams.get("token");
             const tokenId = searchParams.get("tokenId");
@@ -29,9 +34,18 @@ const VerifyEmail = () => {
                     email
                 );
 
-                if ((response?.data.statusCode === 200) && (response?.data.success)) {
-                    navigate("desktop")
+                if (response?.statusCode === 200 && response?.success) {
+                    setStatus("success");
+                    setMessage(
+                        response.message || "Your email has been verified successfully."
+                    );
+                    return;
                 }
+
+                setStatus("error");
+                setMessage(
+                    response?.message || "Email verification failed."
+                );
             } catch (error) {
                 setStatus("error");
 
@@ -51,10 +65,13 @@ const VerifyEmail = () => {
                 {status === "loading" && (
                     <>
                         <div className="verify-loader"></div>
+
                         <span className="verify-label">
                             EMAIL VERIFICATION
                         </span>
+
                         <h1>Verifying your email...</h1>
+
                         <p>
                             Please wait while we verify your email address.
                         </p>
@@ -74,13 +91,6 @@ const VerifyEmail = () => {
                         <h1>Email verified successfully!</h1>
 
                         <p>{message}</p>
-
-                        <button
-                            type="button"
-                            onClick={() => navigate("/login")}
-                        >
-                            Continue to Login →
-                        </button>
                     </>
                 )}
 

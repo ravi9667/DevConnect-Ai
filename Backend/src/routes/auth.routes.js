@@ -16,6 +16,7 @@ import {
     logoutAllDevices,
     getCurrentUser,
     updateAccount,
+    getVerificationStatus,
     deleteAccount,
 } from "../controllers/auth.controller.js";
 import authMiddleware from "../middlewares/auth.middleware.js"
@@ -39,6 +40,8 @@ router.post("/signup",
 );
 
 router.get("/verify-email", verifyEmail);
+
+router.get("/verification-status", getVerificationStatus);
 
 router.post("/resend-verification",
     validate(resendVerificationSchema), resendVerification

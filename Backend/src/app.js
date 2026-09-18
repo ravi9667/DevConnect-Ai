@@ -10,7 +10,6 @@ import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
-app.use(express.json());
 app.use(helmet());
 app.use(
     cors({
@@ -18,6 +17,7 @@ app.use(
         credentials: true
     })
 );
+app.use(express.json());
 app.use(compression());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));

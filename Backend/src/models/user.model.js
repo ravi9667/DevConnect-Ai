@@ -52,6 +52,15 @@ const userSchema = mongoose.Schema(
             default: false,
         },
 
+        verificationSessionHash: {
+            type: String,
+            select: false,
+        },
+
+        verificationSessionExpiresAt: {
+            type: Date,
+        },
+
         role: {
             type: String,
             enum: ["user", "admin"],

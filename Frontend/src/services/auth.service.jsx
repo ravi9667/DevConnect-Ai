@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.SERVER_URL || "http://localhost:5000/api/v1";
+const API_URL = import.meta.env.VITE_SERVER_URL;
 
 export const signupUser = async (userData) => {
     try {
@@ -35,6 +35,28 @@ export const verifyEmail = async (token, tokenId, email) => {
     } catch (error) {
         console.error(
             "Email Verification Error:", error.response?.data || error.message
+        );
+
+        throw error;
+    }
+};
+
+export const getVerificationStatus = async (sessionId) => {
+    try {
+        const response = await axios.get(
+            `${API_URL}/auth/verification-status`,
+            {
+                params: {
+                    sessionId,
+                },
+            }
+        );
+
+        return response.data;
+    } catch (error) {
+        console.error(
+            "Verification Status Error:",
+            error.response?.data || error.message
         );
 
         throw error;
