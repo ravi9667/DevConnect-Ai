@@ -691,7 +691,7 @@ export const googleCallback = asyncHandler( async (req, res) => {
         .cookie("accessToken", accessToken, accessCookieOptions)
         .cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    return res.redirect("http://localhost:5173/");
+    return res.redirect(process.env.CLIENT_URL);
 });
 
 export const githubLogin = asyncHandler(async (req, res) => {
@@ -713,31 +713,36 @@ export const githubCallback = asyncHandler( async (req, res) => {
         )
     }
 
-    const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
-        method: "POST",
-
-        headers: {
-            Accept: "application/json", "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-            clientId: githubOAuthConfig.clientId,
-            client_secret: githubOAuthConfig.clientSecret,
-            code,
-            redirect_url: githubOAuthConfig.callbackUrl,
-        })
-    });
+    const tokenResponse = await fetch(
+        "https://github.com/login/oauth/access_token",
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                client_id: githubOAuthConfig.clientId,
+                client_secret: githubOAuthConfig.clientSecret,
+                code,
+                redirect_uri: githubOAuthConfig.callbackUrl,
+            }),
+        }
+    );
 
     const tokenData = await tokenResponse.json();
 
-    const githubAccessToken = tokenData.access_token;
+    console.log("GitHub Token Response:", tokenData);
 
-    if (!githubAccessToken) {
+    if (!tokenData.access_token) {
         throw new ApiError(
             401,
+            tokenData.error_description ||
             "Failed to get access token from GitHub"
         );
     }
+
+    const githubAccessToken = tokenData.access_token;
 
     const userResponse = await fetch("https://api.github.com/user", {
         headers: {
@@ -772,16 +777,23 @@ export const githubCallback = asyncHandler( async (req, res) => {
     }
 
     if (!user) {
-        const baseUsername = email.split("@")[0];
-        const unqiueUsername = await generateUniqueUsername(baseUsername);
+        const baseUsername = primaryEmail.split("@")[0];
+
+        const uniqueUsername = await generateUniqueUsername(baseUsername);
+
+        const fullName =
+            githubUser.name?.trim() ||
+            githubUser.login?.trim() ||
+            baseUsername;
+
 
         user = await User.create({
-            fullName: githubUser.name || githubUser.login,
-            username: unqiueUsername,
+            fullName,
+            username: uniqueUsername,
             email: primaryEmail,
             authProvider: "github",
             isEmailVerified: true,
-        })
+        });
     }
 
     const accessToken = user.generateAccessToken();
@@ -801,7 +813,7 @@ export const githubCallback = asyncHandler( async (req, res) => {
         .cookie("accessToken", accessToken, accessCookieOptions)
         .cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    return res.redirect("http://localhost:5173/");
+    return res.redirect(process.env.CLIENT_URL);
 });
 
 

@@ -68,7 +68,7 @@ router.get("/google", googleLogin);
 router.get("/google/callback", googleCallback);
 
 router.get("/github", githubLogin);
-router.get("/githubCallback", githubCallback);
+router.get("/github/callback", githubCallback);
 
 router.get("/logout", authMiddleware, logout);
 router.post("/logout-all", authMiddleware, logoutAllDevices);
