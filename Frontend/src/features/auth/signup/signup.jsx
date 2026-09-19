@@ -13,7 +13,7 @@ import hide from "../../../assets/hide.png";
 import unhide from "../../../assets/eye.png";
 import google from "../../../assets/google.png";
 import github from "../../../assets/github.png";
-import { signupUser } from "../../../services/auth.service";
+import { signupUser, googleLogin, githubLogin } from "../../../services/auth.service";
 import Loader from "../../../components/common/Loader/Loader";
 
 
@@ -373,12 +373,12 @@ const Signup = () => {
                             </div>
 
                             <div className="social-buttons">
-                                <button type="button">
+                                <button type="button" onClick={githubLogin}>
                                     <img src={github} alt="" />
                                     <span>GitHub</span>
                                 </button>
 
-                                <button type="button">
+                                <button type="button" onClick={googleLogin}>
                                     <img src={google} alt="" />
                                     <span>Google</span>
                                 </button>

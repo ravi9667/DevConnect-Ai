@@ -62,3 +62,13 @@ export const getVerificationStatus = async (sessionId) => {
         throw error;
     }
 };
+
+// Google Login
+export const googleLogin = () => {
+    window.location.href = `${API_URL}/auth/google`;
+};
+
+// GitHub Login
+export const githubLogin = () => {
+    window.location.href = `${API_URL}/auth/github`;
+};
