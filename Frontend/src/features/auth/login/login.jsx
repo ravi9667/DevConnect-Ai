@@ -291,12 +291,12 @@
                                 </div>
 
                                 <div className="social-buttons">
-                                    <button type="button">
+                                    <button type="button" onClick={githubLogin}>
                                         <img src={github} alt="" />
                                         <span>GitHub</span>
                                     </button>
 
-                                    <button type="button">
+                                    <button type="button" onClick={googleLogin}>
                                         <img src={google} alt="" />
                                         <span>Google</span>
                                     </button>
