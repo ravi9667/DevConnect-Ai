@@ -27,7 +27,7 @@ const refreshTokenSchema = new mongoose.Schema(
         },
 
         clientInfo: {
-            type: String,
+            type: Object,
             default: "Unknown Device",
         },
     },

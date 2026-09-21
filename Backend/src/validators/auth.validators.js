@@ -35,11 +35,10 @@ export const resendVerificationSchema = z.object({
         .email("Invalid email address"),
 });
 
-export const loginOtpSchema = z.object({
-    email: z
+export const loginSchema = z.object({
+    identifier: z
         .string()
-        .trim()
-        .email("Invalid Email"),
+        .trim(),
 
     password: z
         .string()

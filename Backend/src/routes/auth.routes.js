@@ -24,7 +24,7 @@ import validate from "../middlewares/validate.middleware.js";
 import { 
     signupSchema,
     resendVerificationSchema,
-    loginOtpSchema,
+    loginSchema,
     verifyLoginOtpSchema,
     forgetPasswordSchema,
     resetPasswordSchema,
@@ -48,7 +48,7 @@ router.post("/resend-verification",
 );
 
 router.post("/login",
-    validate(loginOtpSchema), login
+    validate(loginSchema), login
 );
 
 router.post("/verify-login-otp", 

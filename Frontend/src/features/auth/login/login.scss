@@ -406,23 +406,13 @@ button {
 .form-options {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     margin: 3px 0 22px;
-}
 
-.remember {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--muted);
-    font-size: 11px;
-    cursor: pointer;
-}
-
-.remember input {
-    width: 13px;
-    height: 13px;
-    accent-color: var(--primary);
+    &:hover {
+        text-decoration: underline;
+        color: #0969cc;
+    }
 }
 
 .forgot {
@@ -525,6 +515,12 @@ button {
     color: var(--primary);
     font-weight: 600;
     cursor: pointer;
+}
+
+/* Autofill fix */
+.input-box input:-webkit-autofill {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 1000px var(--input) inset;
 }
 
 @media (max-width: 1000px) {

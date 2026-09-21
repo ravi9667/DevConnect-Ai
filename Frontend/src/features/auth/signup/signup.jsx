@@ -354,13 +354,6 @@ const Signup = () => {
                                 </div>
                             </div>
 
-                            <div className="form-options">
-                                <label className="remember">
-                                    <input type="checkbox" />
-                                    <span>Remember me</span>
-                                </label>
-                            </div>
-
                             <button className="create-button" type="submit" onClick={handleSignup} disabled={isLoading}>
                                 <span>Create Account</span>
                                 <span>→</span>

@@ -72,3 +72,36 @@ export const googleLogin = () => {
 export const githubLogin = () => {
     window.location.href = `${API_URL}/auth/github`;
 };
+
+export const loginUser = async (userData) => {
+    try {
+        const response = await axios.post(
+            `${API_URL}/auth/login`, userData,
+            {
+                withCredentials: true
+            }
+        );
+        
+        return response;
+    } catch(error) {
+        console.error("Login Error:",error?.response?.data || error.message);
+        throw error;
+    }
+}
+
+
+export const verifyLoginOtp = async (userData) => {
+    try {
+        const response = await axios.post(
+            `${API_URL}/auth/verify-login-otp`, userData,
+            {
+                withCredentials: true
+            }
+        );
+
+        return response;
+    } catch(error) {
+        console.error("Login Error:",error?.response?.data || error.message);
+        throw error;
+    }
+}

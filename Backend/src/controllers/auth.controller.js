@@ -294,10 +294,16 @@ export const resendVerification = asyncHandler( async (req, res) => {
 
 export const login = asyncHandler( async (req, res) => {
 
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
     //find User
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({
+        $or: [
+            { username: identifier },
+            { email: identifier },
+        ],
+    }).select("+password");
+    
     if(!user) {
         throw new ApiError(404, "User not found");
     }
@@ -356,7 +362,7 @@ export const login = asyncHandler( async (req, res) => {
         new ApiResponse(
             200,
             "OTP sent successfully.",
-            null
+            {email: user.email}
         )
     );
 
@@ -382,16 +388,22 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
         throw new ApiError(400, "OTP has expired");
     }
 
-    const isOtpCorrect = await bcrypt.compare(otp, loginOtp.otp);
-    if(!isOtpCorrect) {
-        loginOtp.attempts += 1;
-        await loginOtp.save();
-        throw new ApiError(400, "Invalid OTP");
+    if (loginOtp.attempts >= 5) {
+        await LoginOtp.deleteOne({ _id: loginOtp._id });
+
+        throw new ApiError(
+            429,
+            "Maximum OTP attempts exceeded. Please Login Again."
+        );
     }
 
-    if(loginOtp.attempts >= 5) {
-        await LoginOtp.deleteOne({ _id: loginOtp._id });
-        throw new ApiError(429, "Maximum OTP attempts exceeded. Please Login Again.")
+    const isOtpCorrect = await bcrypt.compare(otp, loginOtp.otp);
+
+    if (!isOtpCorrect) {
+        loginOtp.attempts += 1;
+        await loginOtp.save();
+
+        throw new ApiError(400, "Invalid OTP");
     }
 
     const accessToken = user.generateAccessToken();

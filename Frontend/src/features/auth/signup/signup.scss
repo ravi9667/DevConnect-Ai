@@ -403,30 +403,9 @@ button {
     opacity: 0.80;
 }
 
-.form-options {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 3px 0 22px;
-}
-
-.remember {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--muted);
-    font-size: 11px;
-    cursor: pointer;
-}
-
-.remember input {
-    width: 13px;
-    height: 13px;
-    accent-color: var(--primary);
-}
-
 .create-button {
     width: 100%;
+    margin-top: 25px;
     height: 48px;
     display: flex;
     align-items: center;
