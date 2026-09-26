@@ -93,6 +93,26 @@ const Signup = () => {
         }
     };
 
+    const handleGoogleLogin = async () => {
+        try {
+            setIsLoading(true);
+
+            const response = await googleLogin();
+
+            if (response?.data?.success) {
+                navigate("/desktop");
+            }
+        } catch (error) {
+            console.error("Google Login Error:", error);
+            alert(
+                error?.response?.data?.message ||
+                "Google login failed. Please try again."
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useLayoutEffect(() => {
         const ctx = gsap.context(() => {
             gsap.from(".signup-shell", {
@@ -371,7 +391,7 @@ const Signup = () => {
                                     <span>GitHub</span>
                                 </button>
 
-                                <button type="button" onClick={googleLogin}>
+                                <button type="button" onClick={handleGoogleLogin}>
                                     <img src={google} alt="" />
                                     <span>Google</span>
                                 </button>

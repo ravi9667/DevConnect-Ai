@@ -12,6 +12,7 @@ import {
     googleCallback,
     githubLogin,
     githubCallback,
+    firebaseGoogleLogin,
     logout,
     logoutAllDevices,
     getCurrentUser,
@@ -69,6 +70,8 @@ router.get("/google/callback", googleCallback);
 
 router.get("/github", githubLogin);
 router.get("/github/callback", githubCallback);
+
+router.post("/google/firebase", firebaseGoogleLogin);
 
 router.get("/logout", authMiddleware, logout);
 router.post("/logout-all", authMiddleware, logoutAllDevices);

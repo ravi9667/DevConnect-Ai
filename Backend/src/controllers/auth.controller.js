@@ -18,6 +18,7 @@ import { generatePasswordResetToken  } from '../services/token.service.js';
 import { hashToken } from '../services/token.service.js';
 import { RefreshToken } from '../models/refreshToken.model.js';
 import { googleOAuth2Client, githubOAuthConfig } from '../config/oAuth.js';
+import { firebaseAdminAuth } from '../config/firebaseAdmin.js';
 import { generateUniqueUsername, generateUniqueUsernameSuggestions } from '../utils/usernameGenerator.js';
 import { jwt } from 'zod';
 
@@ -974,4 +975,81 @@ export const deleteAccount = asyncHandler (async (req, res) => {
         200,
         "Account Deleted Successfully"
     )
+});
+
+export const firebaseGoogleLogin = asyncHandler(async (req, res) => {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+        throw new ApiError(400, "Firebase ID token is required");
+    }
+
+    const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken);
+
+    const {
+        email,
+        name,
+        picture,
+        email_verified: emailVerified,
+    } = decodedToken;
+
+    if (!email) {
+        throw new ApiError(400, "Google account email is missing");
+    }
+
+    let user = await User.findOne({ email });
+
+    if (user && user.authProvider !== "google") {
+        throw new ApiError(
+            409,
+            "This email is already registered with another authentication method."
+        );
+    }
+
+    if (!user) {
+        const baseUsername = email.split("@")[0];
+        const uniqueUsername = await generateUniqueUsername(baseUsername);
+
+        user = await User.create({
+            fullName: name || email.split("@")[0],
+            username: uniqueUsername,
+            email,
+            authProvider: "google",
+            isEmailVerified: emailVerified ?? true,
+        });
+    }
+
+    const accessToken = user.generateAccessToken();
+
+    const { refreshToken, jti } = user.generateRefreshToken();
+
+    await saveRefreshToken({
+        userId: user._id,
+        refreshToken,
+        refreshTokenExpiresAt: new Date(
+            Date.now() + 15 * 24 * 60 * 60 * 1000
+        ),
+        clientInfo: req.headers["user-agent"],
+        jti,
+    });
+
+    res
+        .cookie("accessToken", accessToken, accessCookieOptions)
+        .cookie("refreshToken", refreshToken, refreshCookieOptions);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                user: {
+                    _id: user._id,
+                    fullName: user.fullName,
+                    username: user.username,
+                    email: user.email,
+                    profilePicture: picture || user.profilePicture,
+                },
+            },
+            "Google login successful"
+        )
+    );
 });
