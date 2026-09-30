@@ -30,7 +30,7 @@ const ValueSection = () => {
             const timeline = gsap.timeline({
                 scrollTrigger: {
                     trigger: sectionRef.current,
-                    start: "top 40%",
+                    start: "top 75%",
                     end: "bottom 20%",
                     toggleActions: "play none none none",
                 },

@@ -66,7 +66,7 @@ const ProjectSection = () => {
             const timeline = gsap.timeline({
                 scrollTrigger: {
                     trigger: sectionRef.current,
-                    start: "top 40%",
+                    start: "top 75%",
                     toggleActions: "play none none none",
                 },
             });
