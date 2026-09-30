@@ -37,8 +37,8 @@ const HowItWorks = () => {
             const timeline = gsap.timeline({
                 scrollTrigger: {
                     trigger: sectionRef.current,
-                    start: "top 65%",
-                    toggleActions: "play none none reverse",
+                    start: "top 40%",
+                    toggleActions: "play none none none",
                 },
             });
 

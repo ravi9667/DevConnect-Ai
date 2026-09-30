@@ -12,7 +12,7 @@
 
 .navbar--visible {
     visibility: visible;
-    animation: navbarEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: navbarEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes navbarEnter {
