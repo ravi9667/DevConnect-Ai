@@ -56,6 +56,13 @@ export const verifyLoginOtpSchema = z.object({
         .length(6, "OTP must be 6 digits"),
 });
 
+export const resendOtpSchema = z.object({
+    email: z
+        .string()
+        .trim()
+        .email(),
+})
+
 export const forgetPasswordSchema = z.object({
     email: z
         .string()

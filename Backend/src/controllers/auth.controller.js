@@ -240,38 +240,73 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 
-export const resendVerification = asyncHandler( async (req, res) => {
+export const resendVerification = asyncHandler(async (req, res) => {
 
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
-    if(!user) {
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (!normalizedEmail) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({
+        email: normalizedEmail
+    });
+    if (!user) {
         throw new ApiError(404, "User not found");
     }
 
-    if(user.isEmailVerified) {
-        throw new ApiError(400, "Email already verified")
+    if (user.isEmailVerified) {
+        throw new ApiError(400, "Email already verified");
     }
 
+    // Delete previous verification token
     await VerificationToken.deleteOne({
         user: user._id,
         type: "email-verification",
-    })
+    });
 
+    // Generate new verification token
     const tokenId = crypto.randomUUID();
+
     const verificationToken = crypto.randomBytes(32).toString("hex");
+
     const hashedToken = await hashToken(verificationToken);
+
+    // New verification link expires in 10 minutes
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    // Create new verification session
+    const verificationSessionId = crypto.randomBytes(32).toString("hex");
+
+    const verificationSessionHash = hashVerificationSession(verificationSessionId);
+
+    // New verification session expires in 15 minutes
+    const verificationSessionExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    // Update user's verification session
+    user.verificationSessionHash = verificationSessionHash;
+
+    user.verificationSessionExpiresAt = verificationSessionExpiresAt;
+
+    await user.save();
+
+    // Save new verification token
     await VerificationToken.create({
         user: user._id,
         tokenId,
         hashedToken,
         type: "email-verification",
         expiresAt,
-    })
+    });
 
-    const verificationLink = `${process.env.CLIENT_URL}/verify-email?tokenId=${tokenId}&token=${verificationToken}&email=${email}`;
+    // Generate new verification link
+    const verificationLink =
+        `${process.env.CLIENT_URL}/verify-email` +
+        `?tokenId=${tokenId}` +
+        `&token=${verificationToken}` +
+        `&email=${encodeURIComponent(normalizedEmail)}`;
+
     const html = emailTemplate({
         fullName: user.fullName,
         title: "Verify your email",
@@ -281,6 +316,7 @@ export const resendVerification = asyncHandler( async (req, res) => {
         expiryMessage: "This link will expire in 10 minutes."
     });
 
+    // Send verification email
     await sendEmail({
         to: user.email,
         subject: "Verify Your Email",
@@ -288,7 +324,13 @@ export const resendVerification = asyncHandler( async (req, res) => {
     });
 
     return res.status(200).json(
-        new ApiResponse(200, "Verification email sent successfully.")
+        new ApiResponse(
+            200,
+            "Verification email sent successfully.",
+            {
+                verificationSessionId,
+            }
+        )
     );
 });
 
@@ -434,6 +476,76 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
             )
         )
     ;
+});
+
+
+export const resendLoginOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({
+        email: email.trim().toLowerCase(),
+    });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (!user.isEmailVerified) {
+        throw new ApiError(401, "Please verify your email first.");
+    }
+
+    if (!user.isActive) {
+        throw new ApiError(403, "Your account has been deactivated.");
+    }
+
+    // Delete existing OTP
+    await LoginOtp.deleteMany({
+        user: user._id,
+    });
+
+    // Generate new OTP
+    const otp = generateOTP();
+
+    // Hash OTP
+    const hashedOtp = await bcrypt.hash(otp, 12);
+
+    // OTP expiry - 10 minutes
+    const expiresAt = new Date(
+        Date.now() + 10 * 60 * 1000
+    );
+
+    // Save new OTP
+    await LoginOtp.create({
+        user: user._id,
+        otp: hashedOtp,
+        expiresAt,
+    });
+
+    // Send OTP email
+    const html = loginOtpTemplate({
+        fullName: user.fullName,
+        otp,
+    });
+
+    await sendEmail({
+        to: user.email,
+        subject: "Login OTP",
+        html,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "OTP resent successfully.",
+            {
+                email: user.email,
+            }
+        )
+    );
 });
 
 

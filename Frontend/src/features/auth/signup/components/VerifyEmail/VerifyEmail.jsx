@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { verifyEmail } from "../../../../../services/auth.service";
 import "./VerifyEmail.scss";
+import { toast } from "react-toastify";
 
 const VerifyEmail = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const hasVerified = useRef(false);
-
     const [status, setStatus] = useState("loading");
     const [message, setMessage] = useState("");
 
@@ -24,6 +24,7 @@ const VerifyEmail = () => {
             if (!token || !tokenId || !email) {
                 setStatus("error");
                 setMessage("Invalid or incomplete verification link.");
+                toast.error("Invalid or incomplete verification link.");
                 return;
             }
 
@@ -39,6 +40,9 @@ const VerifyEmail = () => {
                     setMessage(
                         response.message || "Your email has been verified successfully."
                     );
+                    toast.success(
+                        response.message || "Your email has been verified successfully."
+                    );
                     return;
                 }
 
@@ -46,10 +50,17 @@ const VerifyEmail = () => {
                 setMessage(
                     response?.message || "Email verification failed."
                 );
+                toast.error(
+                    response?.message || "Email verification failed."
+                );
             } catch (error) {
                 setStatus("error");
 
                 setMessage(
+                    error.response?.data?.message ||
+                    "Verification link is invalid or expired."
+                );
+                toast.error(
                     error.response?.data?.message ||
                     "Verification link is invalid or expired."
                 );

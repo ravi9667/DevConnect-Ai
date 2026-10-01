@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
     getVerificationStatus,
+    resendVerificationEmail
 } from "../../../../../services/auth.service";
 import "./SignupSuccess.scss";
+import { toast } from "react-toastify";
 
 const SignupSuccess = () => {
     const navigate = useNavigate();
@@ -12,8 +14,13 @@ const SignupSuccess = () => {
     const verificationSessionId =
         location.state?.verificationSessionId;
 
+    const email = location.state?.email;
+
+    const [isResending, setIsResending] = useState(false);
+
     useEffect(() => {
-        if (!verificationSessionId) {
+        if (!verificationSessionId || !email) {
+            toast.error("Verification session is invalid");
             navigate("/signup", { replace: true });
             return;
         }
@@ -33,24 +40,27 @@ const SignupSuccess = () => {
                 if (isVerified && isMounted) {
                     clearInterval(intervalId);
 
+                    toast.success("Email verification completed");
+
                     navigate("/desktop", {
                         replace: true,
                     });
                 }
             } catch (error) {
-                // Session expiration or other errors
-                // are handled silently during polling.
-                console.error(
-                    "Polling verification status failed:",
-                    error.response?.data || error.message
-                );
+                if (
+                    error?.response?.status === 410 &&
+                    isMounted
+                ) {
+                    clearInterval(intervalId);
+                    toast.error(
+                        "Verification session has expired. Please sign up again."
+                    );
+                }
             }
         };
 
-        // Check immediately
         checkVerificationStatus();
 
-        // Check every 3 seconds
         intervalId = setInterval(
             checkVerificationStatus,
             3000
@@ -60,7 +70,37 @@ const SignupSuccess = () => {
             isMounted = false;
             clearInterval(intervalId);
         };
-    }, [verificationSessionId, navigate]);
+    }, [verificationSessionId, email, navigate]);
+
+    const handleResendVerification = async () => {
+        if (!email) {
+            toast.error("Email not found. Please sign up again.");
+            return;
+        }
+
+        try {
+            setIsResending(true);
+
+            const response = await resendVerificationEmail(email);
+
+            if (
+                response?.data?.statusCode === 200 &&
+                response?.data?.success
+            ) {
+                toast.success(
+                    response?.data?.message ||
+                    "Verification email sent successfully."
+                );
+            }
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to resend verification email."
+            );
+        } finally {
+            setIsResending(false);
+        }
+    };
 
     return (
         <main className="signup-success-page">
@@ -141,8 +181,14 @@ const SignupSuccess = () => {
                 <div className="success-footer">
                     <span>Didn't receive the email?</span>
 
-                    <button type="button">
-                        Resend verification email
+                    <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={isResending}
+                    >
+                        {isResending
+                            ? "Sending..."
+                            : "Resend verification email"}
                     </button>
                 </div>
 

@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { verifyLoginOtp } from "../../../../../services/auth.service";
-import Loader from '../../../../../components/common/Loader/Loader'
+import { verifyLoginOtp, resendLoginOtp } from "../../../../../services/auth.service";
+import Loader from '../../../../../components/common/Loader/Loader';
+import { toast } from "react-toastify";
 import "./LoginOtp.scss";
 
 const LoginOtp = () => {
@@ -40,7 +41,7 @@ const LoginOtp = () => {
         const email = state?.email;
 
         if (enteredOtp.length !== 6 || !email) {
-            alert("Invalid Otp or Email");
+            toast.error("Invalid Otp or Email");
             return;
         }
 
@@ -53,9 +54,9 @@ const LoginOtp = () => {
             }
 
             const data = await verifyLoginOtp(userData);
-            console.log(data.data)
 
             if(data?.data?.statusCode === 200 && data?.data?.success) {
+                toast.success("Otp Verified successfully")
                 navigate("/desktop", { replace: true });
             }
 
@@ -67,12 +68,37 @@ const LoginOtp = () => {
     };
 
     const handleResend = async () => {
-        try {
-            console.log("Resend OTP");
+        const email = state?.email;
 
-            // Resend OTP API
+        if (!email) {
+            toast.error("Email not found. Please login again.");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+
+            const response = await resendLoginOtp(email);
+
+            if (
+                response?.data?.statusCode === 200 &&
+                response?.data?.success
+            ) {
+                toast.success(
+                    response?.data?.message ||
+                    "OTP resent successfully."
+                );
+
+                setOtp(["", "", "", "", "", ""]);
+                inputRefs.current[0]?.focus();
+            }
         } catch (error) {
-            console.log(error);
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to resend OTP. Please try again."
+            );
+        } finally {
+            setIsLoading(false);
         }
     };
 

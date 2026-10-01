@@ -19,6 +19,7 @@ import {
     updateAccount,
     getVerificationStatus,
     deleteAccount,
+    resendLoginOtp,
 } from "../controllers/auth.controller.js";
 import authMiddleware from "../middlewares/auth.middleware.js"
 import validate from "../middlewares/validate.middleware.js";
@@ -30,6 +31,7 @@ import {
     forgetPasswordSchema,
     resetPasswordSchema,
     updateAccountSchema,
+    resendOtpSchema,
 } from "../validators/auth.validators.js";
 
 
@@ -54,6 +56,10 @@ router.post("/login",
 
 router.post("/verify-login-otp", 
     validate(verifyLoginOtpSchema), verifyLoginOtp
+);
+
+router.post("/resend-login-otp",
+    validate(resendOtpSchema), resendLoginOtp
 );
 
 router.post("/refresh-token", refreshAccessToken);

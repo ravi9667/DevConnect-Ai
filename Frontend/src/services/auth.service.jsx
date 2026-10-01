@@ -146,3 +146,48 @@ export const verifyLoginOtp = async (userData) => {
         throw error;
     }
 };
+
+
+export const resendLoginOtp = async (email) => {
+    try {
+        const response = await axios.post(
+            `${API_URL}/auth/resend-login-otp`,
+            {
+                email,
+            },
+            {
+                withCredentials: true,
+            }
+        );
+
+        return response;
+    } catch (error) {
+        console.error(
+            "Resend OTP Error:",
+            error?.response?.data || error.message
+        );
+
+        throw error;
+    }
+};
+
+export const resendVerificationEmail = async (email) => {
+    try {
+        const response = await axios.post(
+            `${API_URL}/auth/resend-verification`,
+            { email },
+            {
+                withCredentials: true,
+            }
+        );
+
+        return response;
+    } catch (error) {
+        console.error(
+            "Resend Verification Email Error:",
+            error?.response?.data || error.message
+        );
+
+        throw error;
+    }
+};

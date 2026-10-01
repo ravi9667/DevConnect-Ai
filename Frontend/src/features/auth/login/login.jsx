@@ -14,6 +14,7 @@ import google from "../../../assets/google.png";
 import github from "../../../assets/github.png";
 import Loader from "../../../components/common/Loader/Loader";
 import { loginUser, googleLogin, githubLogin } from "../../../services/auth.service";
+import { toast } from "react-toastify";
 
 const Login = () => {
     const loginRef = useRef(null);
@@ -37,7 +38,7 @@ const Login = () => {
         const { identifier, password } = loginFormData;
 
         if( !identifier.trim() || !password.trim()) {
-            alert("All field are required");
+            toast.error("All fields are required");
             return;
         }
 
@@ -48,10 +49,11 @@ const Login = () => {
             const email = data?.data?.data?.email;
             
             if(data?.data.statusCode === 200 && data?.data.success) {
+                toast.success(data?.data?.message || "Login successful");
                 navigate("/login/verify-otp", { state: {email} })
             }
         } catch(error) {
-            console.log(error)
+            toast.error(error?.response?.data?.message || "Login failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -64,14 +66,11 @@ const Login = () => {
             const response = await googleLogin();
 
             if (response?.data?.success) {
+                toast.success(response?.data?.message || "Google login successful");
                 navigate("/desktop");
             }
         } catch (error) {
-            console.error("Google Login Error:", error);
-            alert(
-                error?.response?.data?.message ||
-                "Google login failed. Please try again."
-            );
+            toast.error(error?.response?.data?.message || "Google login failed. Please try again.");
         } finally {
             setIsLoading(false);
         }

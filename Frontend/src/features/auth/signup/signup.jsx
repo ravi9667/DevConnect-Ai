@@ -15,6 +15,7 @@ import google from "../../../assets/google.png";
 import github from "../../../assets/github.png";
 import { signupUser, googleLogin, githubLogin } from "../../../services/auth.service";
 import Loader from "../../../components/common/Loader/Loader";
+import { toast } from "react-toastify";
 
 
 const Signup = () => {
@@ -56,12 +57,12 @@ const Signup = () => {
             !password.trim() ||
             !confirmPassword.trim()
         ) {
-            alert("All fields are required");
+            toast.error("All fields are required");
             return;
         }
 
         if (password !== confirmPassword) {
-            alert("Passwords do not match");
+            toast.error("Password and Confirm Password not matching");
             return;
         }
 
@@ -69,25 +70,26 @@ const Signup = () => {
             setIsLoading(true);
 
             const data = await signupUser(userData);
-            console.log(data.data);
 
             if (data?.data.statusCode === 201 && data?.data.success) {
                 const verificationSessionId =
                     data?.data?.data?.verificationSessionId;
 
                 if (!verificationSessionId) {
-                    alert("Verification session could not be created.");
+                    toast.error("Verification session could not be created.");
                     return;
                 }
 
+                toast.success(data?.data?.message || "Account created successfully");
                 navigate("/signup-success", {
                     state: {
                         verificationSessionId,
+                        email,
                     },
                 });
             }
         } catch (error) {
-            console.log(error);
+            toast.error(error?.response?.data?.message || "Signup failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -100,11 +102,11 @@ const Signup = () => {
             const response = await googleLogin();
 
             if (response?.data?.success) {
+                toast.success(response?.data?.message || "Google login successful");
                 navigate("/desktop");
             }
         } catch (error) {
-            console.error("Google Login Error:", error);
-            alert(
+            toast.error(
                 error?.response?.data?.message ||
                 "Google login failed. Please try again."
             );
