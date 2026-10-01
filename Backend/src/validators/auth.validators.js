@@ -25,7 +25,7 @@ export const signupSchema = z.object({
         .string()
         .min(8, 'Password must be at least 8 characters')
         .max(100, "Password cannot exceed 100 characters")
-        .regex(/^(?=.*[a-z])(?=.*[A-z])(?=.*\d)(?=.*[@$!%*?&])/, "Password must contain uppercase, lowercase, number and special character"),
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/, "Password must contain uppercase, lowercase, number and special character"),
 });
 
 export const resendVerificationSchema = z.object({

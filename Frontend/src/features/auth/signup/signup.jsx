@@ -89,7 +89,20 @@ const Signup = () => {
                 });
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message || "Signup failed. Please try again.");
+            const errorData = error?.response?.data;
+            const suggestions = errorData?.data?.suggestions;
+            if (error?.response?.status === 409 && suggestions?.length) {
+                toast.error(
+                    <>
+                        <strong>{errorData?.message}</strong>
+                        <div>
+                            Try: {suggestions.join(", ")}
+                        </div>
+                    </>
+                );
+                return;
+            }
+            toast.error(errorData?.message || "Signup failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
