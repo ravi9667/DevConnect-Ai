@@ -16,7 +16,6 @@ const Hero = ({ introComplete, onComplete }) => {
 
     const onCompleteRef = useRef(onComplete);
 
-    // Always keep latest callback
     useLayoutEffect(() => {
         onCompleteRef.current = onComplete;
     }, [onComplete]);
@@ -25,9 +24,6 @@ const Hero = ({ introComplete, onComplete }) => {
         if (!introComplete) return;
 
         const context = gsap.context(() => {
-
-            // Initial Hero state
-
             gsap.set(eyebrowRef.current, {
                 opacity: 0,
                 y: 20,
@@ -54,9 +50,6 @@ const Hero = ({ introComplete, onComplete }) => {
                 x: 60,
             });
 
-
-            // Hero Timeline
-
             const timeline = gsap.timeline({
                 onComplete: () => {
                     onCompleteRef.current?.();
@@ -64,19 +57,12 @@ const Hero = ({ introComplete, onComplete }) => {
             });
 
             timeline
-
-                // Eyebrow
-                .to(
-                    eyebrowRef.current,
-                    {
-                        opacity: 1,
-                        y: 0,
-                        duration: 0.7,
-                        ease: "power3.out",
-                    }
-                )
-
-                // Title
+                .to(eyebrowRef.current, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.7,
+                    ease: "power3.out",
+                })
                 .to(
                     titleRef.current,
                     {
@@ -87,8 +73,6 @@ const Hero = ({ introComplete, onComplete }) => {
                     },
                     "-=0.4"
                 )
-
-                // Description
                 .to(
                     descriptionRef.current,
                     {
@@ -99,8 +83,6 @@ const Hero = ({ introComplete, onComplete }) => {
                     },
                     "-=0.5"
                 )
-
-                // Buttons
                 .to(
                     actionsRef.current,
                     {
@@ -111,8 +93,6 @@ const Hero = ({ introComplete, onComplete }) => {
                     },
                     "-=0.4"
                 )
-
-                // 3D Scene
                 .to(
                     sceneRef.current,
                     {
@@ -124,13 +104,11 @@ const Hero = ({ introComplete, onComplete }) => {
                     },
                     "-=0.7"
                 );
-
         }, heroRef);
 
         return () => {
             context.revert();
         };
-
     }, [introComplete]);
 
     return (
@@ -141,7 +119,6 @@ const Hero = ({ introComplete, onComplete }) => {
             }`}
         >
             <div className="hero__content">
-
                 <p
                     ref={eyebrowRef}
                     className="hero__eyebrow"
@@ -155,18 +132,25 @@ const Hero = ({ introComplete, onComplete }) => {
                 >
                     Build.
                     <br />
-                    <span className="collab-title"> Collaborate. </span>
+
+                    <span className="collab-title">
+                        Collaborate.
+                    </span>
+
                     <br />
-                    <span className="ship-title">Ship Together.</span>
+
+                    <span className="ship-title">
+                        Ship Together.
+                    </span>
                 </h1>
 
                 <p
                     ref={descriptionRef}
                     className="hero__description"
                 >
-                    A modern developer collaboration platform designed
-                    to help developers build, connect, and create better
-                    software together.
+                    A modern developer collaboration platform
+                    designed to help developers build, connect,
+                    and create better software together.
                 </p>
 
                 <div
@@ -187,7 +171,6 @@ const Hero = ({ introComplete, onComplete }) => {
                         Explore Platform
                     </button>
                 </div>
-
             </div>
 
             <HeroScene sceneRef={sceneRef} />

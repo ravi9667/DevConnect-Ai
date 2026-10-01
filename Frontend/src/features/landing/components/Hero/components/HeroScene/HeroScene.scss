@@ -1,18 +1,12 @@
 .hero-scene {
     position: absolute;
-
     top: 50%;
     right: 1%;
-
     width: 50%;
     height: 80%;
-
     transform: translateY(-50%);
-
     z-index: 1;
-
     pointer-events: none;
-    
 
     canvas {
         width: 100% !important;
@@ -42,8 +36,8 @@
     }
 
     @media (max-width: 480px) {
-        top: 27%;
-        right: -25%;
+        top: 32%;
+        right: -23%;
         width: 95%;
         height: 50%;
         opacity: 0.4;

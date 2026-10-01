@@ -1,9 +1,13 @@
 import { useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Environment } from "@react-three/drei";
-
+import {
+    Canvas,
+    useFrame,
+} from "@react-three/fiber";
+import {
+    Float,
+    Environment,
+} from "@react-three/drei";
 import "./HeroScene.scss";
-
 
 const TorusKnot = () => {
     const meshRef = useRef(null);
@@ -19,17 +23,21 @@ const TorusKnot = () => {
         mouse.current.x = state.pointer.x;
         mouse.current.y = state.pointer.y;
 
-        // Slow continuous rotation
         meshRef.current.rotation.x += 0.004;
         meshRef.current.rotation.y += 0.008;
         meshRef.current.rotation.z += 0.002;
 
-        // Mouse interaction
         meshRef.current.rotation.x +=
-            (mouse.current.y * 0.15 - meshRef.current.rotation.x) * 0.01;
+            (
+                mouse.current.y * 0.15 -
+                meshRef.current.rotation.x
+            ) * 0.01;
 
         meshRef.current.rotation.y +=
-            (mouse.current.x * 0.2 - meshRef.current.rotation.y) * 0.01;
+            (
+                mouse.current.x * 0.2 -
+                meshRef.current.rotation.y
+            ) * 0.01;
     });
 
     return (
@@ -43,7 +51,14 @@ const TorusKnot = () => {
                 scale={1.05}
             >
                 <torusKnotGeometry
-                    args={[1.6, 0.42, 180, 32, 2, 3]}
+                    args={[
+                        1.6,
+                        0.42,
+                        180,
+                        32,
+                        2,
+                        3,
+                    ]}
                 />
 
                 <meshStandardMaterial
@@ -58,7 +73,6 @@ const TorusKnot = () => {
         </Float>
     );
 };
-
 
 const HeroScene = ({ sceneRef }) => {
     return (
@@ -77,8 +91,9 @@ const HeroScene = ({ sceneRef }) => {
                     alpha: true,
                 }}
             >
-
-                <ambientLight intensity={0.4} />
+                <ambientLight
+                    intensity={0.4}
+                />
 
                 <directionalLight
                     position={[4, 4, 5]}
@@ -88,14 +103,13 @@ const HeroScene = ({ sceneRef }) => {
                 <pointLight
                     position={[-3, 1, 3]}
                     intensity={15}
-                    distance={10}   
+                    distance={10}
                     color="#2997ff"
                 />
 
                 <Environment preset="city" />
 
                 <TorusKnot />
-
             </Canvas>
         </div>
     );
