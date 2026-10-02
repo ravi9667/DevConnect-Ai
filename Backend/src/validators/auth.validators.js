@@ -12,7 +12,7 @@ export const signupSchema = z.object({
         .trim()
         .toLowerCase()
         .min(3,'username must be at least 3 characters')
-        .max(50, "username cannot exceed 30 characters")
+        .max(30, "username cannot exceed 30 characters")
         .regex(/^[a-z0-9_]+$/, "Username can only contain lowercase letters, numbers and underscore"),
 
     email: z

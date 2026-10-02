@@ -89,20 +89,43 @@ const Signup = () => {
                 });
             }
         } catch (error) {
-            const errorData = error?.response?.data;
-            const suggestions = errorData?.errors?.[0]?.suggestions;
-            if (error?.response?.status === 409 && suggestions?.length) {
+            const data = error?.response?.data;
+
+            // Username already taken
+            if (error?.response?.status === 409) {
+                const suggestions = data?.errors?.suggestions;
+
                 toast.error(
-                    <>
-                        <strong>{errorData?.message}</strong>
-                        <div>
-                            Try: {suggestions.join(", ")}
+                    suggestions?.length ? (
+                        <div style={{ display: "block" }}>
+                            <strong style={{ display: "block" }}>
+                                {data?.message}
+                            </strong>
+
+                            <div style={{ display: "block", marginTop: "4px" }}>
+                                Try: {suggestions.join(", ")}
+                            </div>
                         </div>
-                    </>
+                    ) : (
+                        data?.message || "Username already taken"
+                    )
                 );
+
                 return;
             }
-            toast.error(errorData?.message || "Signup failed. Please try again.");
+
+            // Validation error
+            if (error?.response?.status === 400) {
+                toast.error(
+                    data?.errors?.[0]?.message ||
+                    data?.message ||
+                    "Please check your input"
+                );
+
+                return;
+            }
+
+            toast.error(data?.message || "Signup failed. Please try again.");
         } finally {
             setIsLoading(false);
         }

@@ -16,10 +16,6 @@ export const signupUser = async (userData) => {
 
         return response;
     } catch (error) {
-        console.error(
-            "Signup API Error:",
-            error.response?.data || error.message
-        );
         throw error;
     }
 };
