@@ -226,8 +226,7 @@ const Login = () => {
 
                             <button
                                 ref={toggleRef}
-                                className={`theme-toggle ${isDark ? "active" : ""
-                                    }`}
+                                className={`theme-toggle ${isDark ? "active" : ""}`}
                                 onClick={handleThemeToggle}
                                 aria-label="Toggle theme"
                             >

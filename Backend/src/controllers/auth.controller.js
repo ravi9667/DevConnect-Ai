@@ -938,7 +938,7 @@ export const githubCallback = asyncHandler( async (req, res) => {
         .cookie("accessToken", accessToken, accessCookieOptions)
         .cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    return res.redirect(process.env.CLIENT_URL);
+    return res.redirect(`${process.env.CLIENT_URL}/desktop`);
 });
 
 

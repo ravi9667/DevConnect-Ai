@@ -90,7 +90,7 @@ const Signup = () => {
             }
         } catch (error) {
             const errorData = error?.response?.data;
-            const suggestions = errorData?.data?.suggestions;
+            const suggestions = errorData?.errors?.[0]?.suggestions;
             if (error?.response?.status === 409 && suggestions?.length) {
                 toast.error(
                     <>
